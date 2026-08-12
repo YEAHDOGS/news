@@ -55,7 +55,7 @@ header.site {
 .brand .sep { color: var(--mid); font-family: var(--font-display); }
 .brand .project { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; text-decoration: none; }
 .wordmark { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
-.wordmark img { width: 34px; height: 34px; display: block; }
+.wordmark img { width: 36px; height: 36px; display: block; }
 .wordmark span { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; letter-spacing: -0.01em; }
 .nav nav { display: flex; gap: 1.5rem; font-family: var(--font-display); font-size: 0.9rem; }
 .nav nav a { text-decoration: none; color: var(--ink-soft); }
@@ -189,6 +189,7 @@ button.loading .spinner { display: inline-block; }
   display: inline-flex; align-items: center; gap: 0.55rem;
   font-family: var(--font-display); font-size: 0.92rem; color: var(--cream);
 }
+.foot .madeby img { }
 .foot .madeby a { color: var(--cream); text-decoration: underline; text-decoration-color: var(--accent); }
 .foot .madeby a:hover { color: var(--accent); }
 
@@ -200,6 +201,7 @@ pre.dog { font-family: ui-monospace, monospace; color: var(--ink-soft); line-hei
   display: inline-flex; align-items: center; gap: 0.55rem; margin-top: 2.5rem;
   font-family: var(--font-display); font-size: 0.92rem; color: var(--ink-soft);
 }
+.madeby-light img { }
 
 /* ---- prose pages */
 .prose { padding: 2rem 0 3rem; }
