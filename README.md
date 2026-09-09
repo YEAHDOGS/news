@@ -25,7 +25,9 @@ platform is on the roadmap for 2027 — this page is the stake in the ground.
 | `landing/robots.txt`, `landing/sitemap.xml` | Crawler config |
 | `landing/CNAME` | Custom domain: `news.wearedogs.net` |
 | `scripts/check.py` | Sanity checker (internal links, anchors, SEO tags, sitemap/robots/feed.xml consistency) |
+| `scripts/fetch_feed.py` | Hardened fetch wrapper for future remote-feed aggregation: hard timeout, same-registrable-domain redirect cap, streaming size cap, content-type whitelist, per-source failure backoff. Stdlib only — the checker stays offline; nothing here fetches yet |
 | `tests/test_check.py` | Regression tests for the sanity checker (run with `python3 tests/test_check.py`) |
+| `tests/test_fetch_feed.py` | Regression tests for the fetch wrapper, against loopback-only HTTP stubs — no real network (run with `python3 tests/test_fetch_feed.py`) |
 | `.github/workflows/` | `landing-page.yml` (Pages deploy) and `checks.yml` (sanity checks on push/PR) |
 
 ## Run it locally
@@ -142,6 +144,25 @@ attack or robustness vector — fully offline, as always:
   now covers item `<guid>`, `<category>`, `<author>`, and `<source>` in
   addition to titles and descriptions, and flags `data:` and `vbscript:`
   URLs alongside `javascript:`.
+- **Hardened fetch layer (`scripts/fetch_feed.py`):** the parse layer
+  assumes bytes are already in hand; the fetch layer is where bytes get
+  *obtained*, and it is hardened independently (stdlib only, no
+  dependencies). Any future aggregator that pulls remote feeds must go
+  through `fetch_url()` — never raw `urllib`:
+  - hard connect/read timeout (default 10s),
+  - redirect cap of 3 hops, and no hop may leave the original request's
+    registrable domain — open redirects to attacker hosts are refused on
+    the `Location` header alone, before anything is fetched,
+  - response size cap (default 512 KiB, matching the parse cap) enforced
+    during the streaming read, plus an early refusal on a lying
+    `Content-Length`,
+  - content-type whitelist checked before the body is read
+    (`application/rss+xml`, `application/atom+xml`, `application/xml`,
+    `text/xml`, `application/feed+json`, `application/json` — HTML and
+    friends are rejected),
+  - per-source exponential failure backoff (`SourceBackoff`: 1 min,
+    doubling, capped at 1 hour; success resets the counter), so a
+    flapping source can't turn the aggregator into a retry hammer.
 
 ## Roadmap
 
