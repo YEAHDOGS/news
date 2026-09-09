@@ -2,8 +2,9 @@
 """Sanity checks for the news.wearedogs.net static landing site.
 
 Catches broken internal links, dangling fragment anchors, missing SEO
-basics, sitemap/robots.txt drift, and feed.xml problems before anything
-ships.
+basics, sitemap/robots.txt drift, feed.xml problems, and broken
+canonical-domain URLs hiding in <meta> content= attributes (og:image,
+twitter:image) before anything ships.
 
 Errors fail the run; warnings are informational.
 Stdlib only — no dependencies to install.
@@ -28,6 +29,8 @@ ABS_URL = re.compile(r'''(?:src|href)="(https?://[^"]+)"''')
 FRAGMENT = re.compile(r'''href="#([^"]+)"''')
 ID_ATTR = re.compile(r'''\sid="([^"]+)"''')
 OG_TAG = re.compile(r'''<meta\s+property="og:([^"]+)"''')
+META_CONTENT_URL = re.compile(
+    r'''<meta[^>]*?content="(https?://[^"]+)"''', re.IGNORECASE)
 
 
 def run_checks(root: Path) -> tuple[list[str], list[str]]:
@@ -107,30 +110,38 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
         _cname = (landing / "CNAME").read_text(encoding="utf-8").strip()
     except (OSError, UnicodeDecodeError):
         _cname = ""  # section 3 reports the read problem; don't double-report
+
+    def resolve_same_domain(page: Path, url: str) -> None:
+        """Verify one absolute same-domain URL maps to a real landing/ file.
+
+        URLs off the canonical domain are ignored — the checker never
+        phones home. A bare domain root maps to index.html.
+        """
+        prefix = f"https://{_cname}/"
+        if url == prefix.rstrip("/"):
+            rel = ""
+        elif url.startswith(prefix):
+            rel = url[len(prefix):]
+        else:
+            return  # external link, not ours to verify
+        rel = rel.split("#", 1)[0].split("?", 1)[0] or "index.html"
+        target = (landing / rel).resolve()
+        try:
+            target.relative_to(landing)
+        except ValueError:
+            err(f"{page.name}: internal link {url} escapes landing/")
+            return
+        if not target.exists():
+            err(f"{page.name}: internal link {url} "
+                f"has no matching file in landing/")
+
     if _cname:
-        _prefix = f"https://{_cname}/"
         for page in html_files:
             text = page_text(page)
             if text is None:
                 continue
             for m in ABS_URL.finditer(text):
-                url = m.group(1)
-                if url == _prefix.rstrip("/"):
-                    rel = ""
-                elif url.startswith(_prefix):
-                    rel = url[len(_prefix):]
-                else:
-                    continue  # external link, not ours to verify
-                rel = rel.split("#", 1)[0].split("?", 1)[0] or "index.html"
-                target = (landing / rel).resolve()
-                try:
-                    target.relative_to(landing)
-                except ValueError:
-                    err(f"{page.name}: internal link {url} escapes landing/")
-                    continue
-                if not target.exists():
-                    err(f"{page.name}: internal link {url} "
-                        f"has no matching file in landing/")
+                resolve_same_domain(page, m.group(1))
 
     # --- 2. SEO basics on every page --------------------------------------------
     for page in html_files:
@@ -300,6 +311,18 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
             elif m.group(1) != feed_built.strftime("%Y-%m-%d"):
                 err(f"index.html: feed-line date {m.group(1)} does not match "
                     f'feed.xml <lastBuildDate> ({feed_built.strftime("%Y-%m-%d")})')
+
+    # --- 8. absolute same-domain URLs in meta content= must resolve -----------
+    # Section 1b only scans src=/href= attributes, so canonical-domain URLs
+    # in <meta> tags (og:image, og:url, twitter:image ...) slip through.
+    # A renamed og.png with a stale og:image means broken social previews.
+    if _cname:
+        for page in html_files:
+            text = page_text(page)
+            if text is None:
+                continue
+            for m in META_CONTENT_URL.finditer(text):
+                resolve_same_domain(page, m.group(1))
 
     return errors, warnings
 

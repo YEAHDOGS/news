@@ -328,6 +328,34 @@ class AbsoluteLinkTests(FixtureSite):
         self.assertEqual(errors, ["CNAME is missing"], errors)
 
 
+    # --- 8. absolute same-domain URLs in <meta> content= --------------------
+    def test_og_image_missing_file_errors(self):
+        self.write("index.html", BASE_HTML.replace(
+            "https://news.wearedogs.net/og.png",
+            "https://news.wearedogs.net/og-gone.png"))
+        errors, _ = self.checks()
+        self.assertTrue(any("no matching file" in e and "og-gone.png" in e
+                            for e in errors), errors)
+
+    def test_og_image_external_ignored(self):
+        self.write("index.html", BASE_HTML.replace(
+            "https://news.wearedogs.net/og.png",
+            "https://example.com/og.png"))
+        errors, warnings = self.checks()
+        # no link errors for the external image; the orphaned fixture og.png
+        # is (correctly) flagged as unreferenced by section 5
+        self.assertEqual(errors, [], errors)
+        self.assertTrue(any("unreferenced asset: landing/og.png" in w
+                            for w in warnings), warnings)
+
+    def test_meta_content_url_escaping_landing_errors(self):
+        self.write("index.html", BASE_HTML.replace(
+            "https://news.wearedogs.net/og.png",
+            "https://news.wearedogs.net/../secret.png"))
+        errors, _ = self.checks()
+        self.assertTrue(any("escapes landing/" in e for e in errors), errors)
+
+
 class RealTreeTest(unittest.TestCase):
     """The actual repo tree the CI ships must pass clean."""
 
