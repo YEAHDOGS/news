@@ -311,6 +311,69 @@ for page in html_files:
     for prop, url in OG_URL_PROP.findall(text):
         _check_og_url(page.name, prop, url)
 
+# --- 9. canonical link integrity --------------------------------------------------
+# §2 only checks a canonical tag *exists*; it never verified the value.
+# A canonical pointing at another domain, a relative path, or a different
+# page (plus a second canonical tag, or a disagreeing og:url) is a live SEO
+# defect: search engines and social scrapers act on it. Rules:
+#   - exactly one rel="canonical" per page (§2 already errors when missing),
+#   - href must be an absolute URL on the canonical domain — same offline
+#     policy as §7/§8,
+#   - href must name *this* page (index.html -> the bare domain root,
+#     other.html -> /other.html), with no query string or fragment,
+#   - og:url, when present, must equal the canonical href exactly,
+#   - no two pages may share the same canonical href.
+CANONICAL_TAG = re.compile(
+    r'<link\b[^>]*\brel\s*=\s*["\']canonical["\'][^>]*>', re.I)
+HREF_ATTR = re.compile(r'\bhref\s*=\s*"([^"]+)"', re.I)
+OG_URL_TAG = re.compile(
+    r'<meta\b[^>]*\bproperty\s*=\s*["\']og:url["\'][^>]*>', re.I)
+CONTENT_ATTR = re.compile(r'\bcontent\s*=\s*"([^"]+)"', re.I)
+
+canonical_owners: dict[str, list[str]] = {}
+for page in html_files:
+    text = page.read_text(encoding="utf-8")
+    tags = CANONICAL_TAG.findall(text)
+    if len(tags) > 1:
+        err(f"{page.name}: {len(tags)} rel=canonical links — "
+            "exactly one is allowed")
+        continue
+    if not tags:
+        continue  # §2 already errors on the missing tag
+    href_m = HREF_ATTR.search(tags[0])
+    href = href_m.group(1).strip() if href_m else ""
+    if not href:
+        err(f"{page.name}: rel=canonical link has no href")
+        continue
+    rel_path = page.relative_to(LANDING).as_posix()
+    expected = (feed_prefix if rel_path == "index.html"
+                else feed_prefix + rel_path)
+    on_domain = href.startswith(feed_prefix)
+    if not on_domain:
+        err(f"{page.name}: canonical href {href} is not an absolute URL on "
+            f"the canonical domain {feed_prefix}")
+    else:
+        if "?" in href or "#" in href:
+            err(f"{page.name}: canonical href {href} must not contain a "
+                "query or fragment")
+        if href != expected:
+            err(f"{page.name}: canonical href {href} does not match this "
+                f"page (expected {expected})")
+        og_m = OG_URL_TAG.search(text)
+        if og_m:
+            content_m = CONTENT_ATTR.search(og_m.group(0))
+            og_url = content_m.group(1).strip() if content_m else ""
+            if og_url and og_url != href:
+                err(f"{page.name}: og:url {og_url} does not match canonical "
+                    f"href {href}")
+    # register regardless of the above so duplicate claims across pages are
+    # always caught even when a canonical is otherwise broken
+    canonical_owners.setdefault(href, []).append(page.name)
+for href, owners in canonical_owners.items():
+    if len(owners) > 1:
+        err(f"canonical href {href} is claimed by multiple pages: "
+            f"{', '.join(owners)}")
+
 # --- report -------------------------------------------------------------------
 for w in warnings:
     print(f"warning: {w}")

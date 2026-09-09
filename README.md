@@ -82,6 +82,16 @@ URL must map to a real file under `landing/` when it is absolute on the
 canonical domain or relative (`https://news.wearedogs.net/og.png` → `og.png`).
 Other domains are skipped offline, same as §7.
 
+### Rule §9 (canonical link integrity)
+
+Rule §2 only checked that a canonical tag *exists* — it never verified the
+value, and search engines and social scrapers act on it. Rule §9 closes that
+gap: each page must carry exactly one `rel="canonical"` whose `href` is an
+absolute URL on the canonical domain naming *that page*
+(`index.html` → the bare domain root, `other.html` → `/other.html`), with no
+query string or fragment; `og:url`, when present, must equal the canonical
+href exactly; and no two pages may share the same canonical.
+
 ## Roadmap
 
 From the landing page timeline:

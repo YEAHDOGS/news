@@ -222,6 +222,69 @@ def t_broken_og_url_fails():
     assert "og:url" in out and "no matching file" in out, out
 
 
+# --- §9 canonical link integrity ------------------------------------------------
+
+
+def t_off_domain_canonical_fails():
+    code, out = run_check(page_edits={"thanks.html": (
+        'rel="canonical" href="https://news.wearedogs.net/thanks.html"',
+        'rel="canonical" href="https://evil.example/thanks.html"')})
+    assert code != 0, "off-domain canonical href should fail"
+    assert "not an absolute URL on the canonical domain" in out, out
+
+
+def t_relative_canonical_fails():
+    code, out = run_check(page_edits={"thanks.html": (
+        'rel="canonical" href="https://news.wearedogs.net/thanks.html"',
+        'rel="canonical" href="/thanks.html"')})
+    assert code != 0, "relative canonical href should fail"
+    assert "not an absolute URL on the canonical domain" in out, out
+
+
+def t_wrong_page_canonical_fails():
+    code, out = run_check(page_edits={"thanks.html": (
+        'rel="canonical" href="https://news.wearedogs.net/thanks.html"',
+        'rel="canonical" href="https://news.wearedogs.net/privacy.html"')})
+    assert code != 0, "canonical pointing at another page should fail"
+    assert "does not match this page" in out, out
+
+
+def t_canonical_query_fails():
+    code, out = run_check(page_edits={"thanks.html": (
+        'rel="canonical" href="https://news.wearedogs.net/thanks.html"',
+        'rel="canonical" href="https://news.wearedogs.net/thanks.html?x=1"')})
+    assert code != 0, "canonical with a query string should fail"
+    assert "must not contain a query or fragment" in out, out
+
+
+def t_multiple_canonicals_fail():
+    code, out = run_check(page_edits={"thanks.html": (
+        '<link rel="canonical" href="https://news.wearedogs.net/thanks.html">',
+        '<link rel="canonical" href="https://news.wearedogs.net/thanks.html">\n'
+        '  <link rel="canonical" href="https://news.wearedogs.net/thanks.html">')})
+    assert code != 0, "two canonical tags should fail"
+    assert "exactly one is allowed" in out, out
+
+
+def t_ogurl_canonical_mismatch_fails():
+    code, out = run_check(page_edits={"thanks.html": (
+        'property="og:url" content="https://news.wearedogs.net/thanks.html"',
+        'property="og:url" content="https://news.wearedogs.net/privacy.html"')})
+    assert code != 0, "og:url disagreeing with canonical should fail"
+    assert "og:url" in out and "does not match canonical" in out, out
+
+
+def t_duplicate_canonical_fails():
+    code, out = run_check(page_edits={
+        "thanks.html": (
+            'rel="canonical" href="https://news.wearedogs.net/thanks.html"',
+            'rel="canonical" href="https://news.wearedogs.net/privacy.html"'),
+    })
+    # thanks.html now claims the same canonical as privacy.html
+    assert code != 0, "two pages sharing a canonical should fail"
+    assert "is claimed by multiple pages" in out, out
+
+
 check("clean feed passes", t_clean_feed_passes)
 check("off-domain channel link fails", t_off_domain_channel_link_fails)
 check("wrong atom:self link fails", t_wrong_atom_self_link_fails)
@@ -245,8 +308,15 @@ check("broken og:image fails", t_broken_og_image_fails)
 check("relative og:image passes", t_relative_og_image_passes)
 check("external og:image skipped (offline)", t_external_og_image_skipped_offline)
 check("broken og:url fails", t_broken_og_url_fails)
+check("off-domain canonical fails", t_off_domain_canonical_fails)
+check("relative canonical fails", t_relative_canonical_fails)
+check("canonical pointing at another page fails", t_wrong_page_canonical_fails)
+check("canonical with query string fails", t_canonical_query_fails)
+check("multiple canonicals fail", t_multiple_canonicals_fail)
+check("og:url disagreeing with canonical fails", t_ogurl_canonical_mismatch_fails)
+check("duplicate canonical across pages fails", t_duplicate_canonical_fails)
 
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print("\nall 20 tests passed")
+print("\nall 27 tests passed")
