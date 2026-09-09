@@ -631,7 +631,47 @@ check("entity-encoded onerror in category fails",
       t_event_handler_entity_in_category_fails)
 check("benign author passes", t_benign_author_passes)
 
+# --- §12 feed item identity integrity (guid presence + uniqueness) -------------
+
+
+def _feed_with_items(guid_xmls: list) -> str:
+    items = "".join(
+        f'  <item><title>T{i}</title><link>https://news.wearedogs.net/</link>'
+        f"{g}<description>D</description></item>\n"
+        for i, g in enumerate(guid_xmls, start=1))
+    return real_feed().replace("</channel>", items + "  </channel>")
+
+
+def t_duplicate_guid_fails():
+    feed = _feed_with_items([
+        '<guid isPermaLink="false">story-1</guid>',
+        '<guid isPermaLink="false">story-1</guid>',
+    ])
+    code, out = run_check(feed)
+    assert code != 0, "duplicate guids should fail"
+    assert "duplicates item #1" in out, out
+
+
+def t_missing_guid_warns():
+    code, out = run_check(_feed_with_items([""]))
+    assert code == 0, f"missing guid should only warn, not fail:\n{out}"
+    assert "has no <guid>" in out, out
+
+
+def t_unique_guids_pass():
+    feed = _feed_with_items([
+        '<guid isPermaLink="false">story-1</guid>',
+        '<guid isPermaLink="false">story-2</guid>',
+    ])
+    code, out = run_check(feed)
+    assert code == 0, f"unique guids should pass:\n{out}"
+
+
+check("duplicate item guids fail", t_duplicate_guid_fails)
+check("missing item guid warns", t_missing_guid_warns)
+check("unique item guids pass", t_unique_guids_pass)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print(f"\nall {37 + 3 + 7 + 5 + 5} tests passed")
+print(f"\nall {37 + 3 + 7 + 5 + 5 + 3} tests passed")

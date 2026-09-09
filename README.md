@@ -164,6 +164,16 @@ attack or robustness vector — fully offline, as always:
     doubling, capped at 1 hour; success resets the counter), so a
     flapping source can't turn the aggregator into a retry hammer.
 
+### Rule §12 (feed item identity integrity)
+
+Aggregators deduplicate and sort on `<guid>` — identity failures are
+silent story-loss. Still fully offline:
+
+- an item with no `<guid>` at all (or an empty one) — **warning**
+  (aggregators fall back to flaky synthetic ids),
+- two items sharing the same `<guid>` — **error** (aggregators collapse
+  them into a single story).
+
 ## Roadmap
 
 From the landing page timeline:

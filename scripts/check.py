@@ -630,6 +630,29 @@ if feed_root is not None and feed_root.tag == "rss":
                 err(f"feed.xml: item #{i} <description> is {desc_bytes} "
                     f"bytes (limit {MAX_DESCRIPTION_BYTES}) — trim it")
 
+# --- 12. feed item identity integrity (guid presence + uniqueness) -----------
+# Aggregators deduplicate and order on <guid>. A missing guid forces
+# synthetic ids (flaky re-delivery); a duplicated guid makes aggregators
+# collapse two distinct stories into one. Offline check, per the feed's
+# existing identity fields — no fetching involved.
+if feed_root is not None and feed_root.tag == "rss":
+    channel = feed_root.find("channel")
+    if channel is not None:
+        seen_guids: dict[str, int] = {}
+        for i, item in enumerate(channel.findall("item"), start=1):
+            guid = item.find("guid")
+            gtext = (guid.text or "").strip() if guid is not None else ""
+            if not gtext:
+                warn(f"feed.xml: item #{i} has no <guid> — aggregators "
+                     "dedupe on guid; without one the item gets a flaky "
+                     "synthetic id")
+            elif gtext in seen_guids:
+                err(f"feed.xml: item #{i} <guid> {gtext!r} duplicates "
+                    f"item #{seen_guids[gtext]} — aggregators collapse "
+                    "duplicate guids into one story")
+            else:
+                seen_guids[gtext] = i
+
 # --- report -------------------------------------------------------------------
 for w in warnings:
     print(f"warning: {w}")
