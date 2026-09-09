@@ -52,8 +52,9 @@ Pushes to `master` that touch `landing/**` trigger
 Pages on the custom domain `news.wearedogs.net` (see `landing/CNAME`).
 
 The `checks.yml` workflow runs `scripts/check.py` on every push and PR to
-catch broken internal links, dangling anchors, missing SEO tags, and
-sitemap/robots.txt drift before anything ships.
+catch broken internal links, dangling anchors, missing SEO tags,
+sitemap/robots.txt drift, feed.xml validation failures, and missing
+RSS autodiscovery links before anything ships.
 
 ## Roadmap
 
