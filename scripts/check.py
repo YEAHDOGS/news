@@ -107,8 +107,10 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
     for page in html_files:
         text = page.read_text(encoding="utf-8")
         noindex = 'name="robots" content="noindex' in text
-        in_sitemap = any(loc.rstrip("/").endswith("/" + page.name)
-                         for loc in locs)
+        # mirror section 3's normalization: a root URL means index.html
+        in_sitemap = any(
+            (loc[len(prefix):] or "index.html") == page.name
+            for loc in locs if loc.startswith(prefix))
         if noindex and in_sitemap:
             err(f"{page.name}: marked noindex but listed in sitemap.xml")
         if noindex and page.name.strip("/") not in disallowed:
