@@ -205,6 +205,59 @@ class FixtureSite(unittest.TestCase):
                         warnings)
 
 
+class MissingFileTests(FixtureSite):
+    """Missing, empty, or malformed core files must be *reported*, never crash.
+
+    Before the hardening, a missing CNAME / sitemap.xml / robots.txt, or a
+    page that isn't valid UTF-8, killed the checker with an unhandled
+    traceback instead of a clean error line.
+    """
+
+    def test_missing_cname_reports_error(self):
+        (self.landing / "CNAME").unlink()
+        errors, warnings = self.checks()
+        self.assertEqual(errors, ["CNAME is missing"], errors)
+
+    def test_empty_cname_reports_error(self):
+        self.write("CNAME", "  \n")
+        errors, _ = self.checks()
+        self.assertTrue(any("CNAME is empty" in e for e in errors), errors)
+
+    def test_missing_sitemap_reports_error(self):
+        (self.landing / "sitemap.xml").unlink()
+        errors, _ = self.checks()
+        self.assertEqual(errors, ["sitemap.xml is missing"], errors)
+
+    def test_sitemap_unparseable(self):
+        self.write("sitemap.xml", "<urlset><unclosed>")
+        errors, _ = self.checks()
+        self.assertTrue(any("sitemap.xml does not parse" in e for e in errors),
+                        errors)
+
+    def test_missing_robots_reports_error(self):
+        (self.landing / "robots.txt").unlink()
+        errors, _ = self.checks()
+        self.assertEqual(errors, ["robots.txt is missing"], errors)
+
+    def test_non_utf8_html_page_reports_error(self):
+        self.write("index.html", b"\xff\xfe binary junk \x00\x01")
+        errors, _ = self.checks()
+        self.assertTrue(any("index.html is not valid UTF-8" in e for e in errors),
+                        errors)
+
+    def test_non_utf8_feed_reports_error(self):
+        self.write("feed.xml", b"\xff\xfe binary junk \x00\x01")
+        errors, _ = self.checks()
+        self.assertTrue(any("feed.xml is not valid UTF-8" in e for e in errors),
+                        errors)
+
+    def test_missing_landing_dir_reports_error(self):
+        import shutil
+        shutil.rmtree(self.landing)
+        errors, _ = self.checks()
+        self.assertEqual(errors, ["no HTML files found under landing/"], errors)
+
+
 class RealTreeTest(unittest.TestCase):
     """The actual repo tree the CI ships must pass clean."""
 
