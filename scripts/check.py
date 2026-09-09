@@ -2,9 +2,10 @@
 """Sanity checks for the news.wearedogs.net static landing site.
 
 Catches broken internal links, dangling fragment anchors, missing SEO
-basics, sitemap/robots.txt drift, feed.xml problems, and broken
-canonical-domain URLs hiding in <meta> content= attributes (og:image,
-twitter:image) before anything ships.
+basics, sitemap/robots.txt drift (sitemap entries must map to real files
+*and* every indexable page must appear in the sitemap), feed.xml problems,
+and broken canonical-domain URLs hiding in <meta> content= attributes
+(og:image, twitter:image) before anything ships.
 
 The canonical <link> itself is also validated (section 9): it must be
 absolute, on the canonical domain, and self-referential — an off-domain
@@ -225,6 +226,47 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
             path = loc[len(prefix):] or "index.html"
             if not (landing / path).exists():
                 err(f"sitemap.xml: {loc} has no matching file in landing/")
+
+    # --- 3b. every indexable page is listed in the sitemap --------------------
+    # Section 3 validates sitemap -> files; this is the reverse direction. A
+    # new public page that never makes it into sitemap.xml still passes every
+    # other check, so crawlers silently never get a hint it exists. Pages
+    # crawlers are told to skip (noindex, or Disallow'd in robots.txt) are
+    # exempt — listing those would contradict the exclusion. This is a
+    # warning, not an error: nothing is broken, a crawl hint is just missing.
+    sitemap_ok = prefix is not None and not any(
+        e.startswith("sitemap.xml does not parse") for e in errors)
+    if sitemap_ok:
+        # robots.txt tells us which pages crawlers are told to skip; it is
+        # read here (again) because section 4's read happens further down.
+        # A missing/unreadable robots.txt is section 4's error — without it
+        # we can't know the exemptions, so coverage checking is skipped.
+        try:
+            robots_source = (landing / "robots.txt").read_text(
+                encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            robots_source = None
+    if sitemap_ok and robots_source is not None:
+        sitemap_paths = set()
+        for loc in locs:
+            if loc.startswith(prefix):
+                p = loc[len(prefix):].split("#", 1)[0].split("?", 1)[0]
+                sitemap_paths.add(p or "index.html")
+        disallowed_paths = {m.strip("/")
+                            for m in re.findall(r"^Disallow:\s*(\S+)",
+                                                robots_source, re.M)}
+        for page in html_files:
+            text = page_text(page)
+            if text is None:
+                continue  # unreadable page is already an error
+            if 'name="robots" content="noindex' in text:
+                continue
+            if page.name in disallowed_paths:
+                continue
+            key = "index.html" if page.name == "index.html" else page.name
+            if key not in sitemap_paths:
+                warn(f"{page.name}: indexable page not listed in sitemap.xml; "
+                     f"add {prefix}{'' if key == 'index.html' else key}")
 
     # --- 4. robots.txt vs noindex pages ------------------------------------------
     robots_text = read_text(landing / "robots.txt")

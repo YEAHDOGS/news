@@ -154,6 +154,52 @@ class FixtureSite(unittest.TestCase):
         errors, _ = self.checks()
         self.assertTrue(any("no matching file" in e for e in errors), errors)
 
+    # --- 3b. sitemap coverage: every indexable page listed -----------------
+    # Section 3 checks sitemap -> files; these tests cover the reverse: a
+    # new public page that never lands in sitemap.xml must not slip
+    # through green. noindex and robots-Disallow'd pages are exempt.
+    def page_named(self, name):
+        # A page that is self-consistent (own canonical + og:url) but shares
+        # the fixture's og.png. Only the root-URL attributes are rewritten —
+        # a blind replace would also mangle the og:image path.
+        url = f"https://news.wearedogs.net/{name}"
+        html = BASE_HTML.replace(
+            '<link rel="canonical" href="https://news.wearedogs.net/">',
+            f'<link rel="canonical" href="{url}">').replace(
+            '<meta property="og:url" content="https://news.wearedogs.net/">',
+            f'<meta property="og:url" content="{url}">')
+        self.write(name, html)
+
+    def test_indexable_page_missing_from_sitemap_warns(self):
+        self.page_named("extra.html")
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertTrue(any("extra.html" in w and "not listed in sitemap.xml" in w
+                            for w in warnings), warnings)
+
+    def test_disallowed_page_missing_from_sitemap_is_fine(self):
+        self.write("robots.txt", ROBOTS.replace(
+            "Allow: /\n", "Allow: /\nDisallow: /secret.html\n"))
+        self.page_named("secret.html")
+        _, warnings = self.checks()
+        self.assertFalse(any("not listed in sitemap.xml" in w
+                             for w in warnings), warnings)
+
+    def test_noindex_page_missing_from_sitemap_is_fine(self):
+        self.write("extra.html", BASE_HTML.replace(
+            "<head>", '<head>\n<meta name="robots" content="noindex">'))
+        _, warnings = self.checks()
+        self.assertFalse(any("not listed in sitemap.xml" in w
+                             for w in warnings), warnings)
+
+    def test_sitemap_index_html_form_satisfies_root_coverage(self):
+        self.write("sitemap.xml", SITEMAP.replace(
+            "https://news.wearedogs.net/",
+            "https://news.wearedogs.net/index.html"))
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
     def test_unreferenced_asset_warns(self):
         self.write("stray.png", b"\x89PNG\r\n\x1a\n")
         errors, warnings = self.checks()
