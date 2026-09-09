@@ -162,7 +162,10 @@ if feed_root is not None:
                     err(f"feed.xml: atom:self link should be {feed_prefix}feed.xml")
         for item in channel.findall("item"):
             item_link = (item.findtext("link") or "").strip()
-            if item_link and not item_link.startswith(feed_prefix):
+            # item links must be absolute-on-canonical or relative (a
+            # relative link is local by definition; §7 verifies it resolves)
+            if (item_link and not item_link.startswith(feed_prefix)
+                    and re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", item_link)):
                 err(f"feed.xml: item link {item_link} is not on {feed_prefix}")
             pub = (item.findtext("pubDate") or "").strip()
             if pub:
@@ -212,6 +215,67 @@ if feed_root is not None:
                 _scan_feed_text(item.find("title"), f"item #{i} <title>")
                 _scan_feed_text(item.find("description"),
                                 f"item #{i} <description>")
+
+# --- 7. feed item/channel links resolve to local files -------------------------
+# Local-only link integrity: a link on the site's canonical domain must map
+# to a real file under landing/ ("/" -> index.html, "/dir/" -> dir/index.html,
+# and "#fragment" must name an id present in the target page). Relative links
+# are resolved against landing/ too. Links to other domains are never
+# fetched — offline policy — they are skipped with a note.
+
+
+def _resolve_local(url: str) -> tuple:
+    """Map a link to a local file. Returns (target, fragment, is_local).
+
+    is_local False means the link points at another domain: skip it.
+    """
+    u = url.strip()
+    if u.startswith(feed_prefix):
+        u = u[len(feed_prefix):]
+    elif u.startswith("//") or re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", u):
+        return None, None, False  # external — never fetched
+    elif u.startswith("./"):
+        u = u[2:]
+    u = u.split("?", 1)[0]
+    frag = None
+    if "#" in u:
+        u, frag = u.split("#", 1)
+    if not u or u.endswith("/"):
+        u = (u or "") + "index.html"
+    target = (LANDING / u).resolve()
+    return target, frag or None, True
+
+
+def _check_feed_link(where: str, url: str) -> None:
+    if not url.strip():
+        return
+    target, frag, is_local = _resolve_local(url)
+    if not is_local:
+        warn(f"feed.xml: {where} link {url.strip()} is external — "
+             "not checked (offline)")
+        return
+    try:
+        target.relative_to(LANDING)
+    except ValueError:
+        err(f"feed.xml: {where} link {url.strip()} escapes landing/")
+        return
+    if not target.exists():
+        err(f"feed.xml: {where} link {url.strip()} has no matching file "
+            "in landing/")
+        return
+    if frag and target.suffix.lower() == ".html":
+        ids = set(ID_ATTR.findall(target.read_text(encoding="utf-8")))
+        if frag not in ids:
+            err(f"feed.xml: {where} link #{frag} has no matching id "
+                f"in {target.name}")
+
+
+if feed_root is not None and feed_root.tag == "rss":
+    channel = feed_root.find("channel")
+    if channel is not None:
+        _check_feed_link("<channel>", channel.findtext("link") or "")
+        for i, item in enumerate(channel.findall("item"), start=1):
+            _check_feed_link(f"item #{i}", item.findtext("link") or "")
 
 # --- report -------------------------------------------------------------------
 for w in warnings:
