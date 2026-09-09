@@ -70,6 +70,15 @@ for page in html_files:
         if tag not in og:
             warn(f"{name}: missing og:{tag}")
 
+# --- 2b. RSS autodiscovery on every page ---------------------------------------
+for page in html_files:
+    text = page.read_text(encoding="utf-8")
+    if 'rel="alternate"' not in text or 'application/rss+xml' not in text:
+        err(f"{page.name}: missing RSS autodiscovery link "
+            f'(rel="alternate", type="application/rss+xml")')
+    elif 'href="./feed.xml"' not in text:
+        err(f"{page.name}: RSS autodiscovery link does not point at ./feed.xml")
+
 # --- 3. sitemap entries map to real files on the canonical domain -----------
 cname = (LANDING / "CNAME").read_text(encoding="utf-8").strip()
 sitemap = LANDING / "sitemap.xml"
