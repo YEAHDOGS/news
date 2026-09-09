@@ -3,8 +3,8 @@
 
 Copies the repo's scripts/ + landing/ into a temp dir (the checker derives
 its root from its own path, so the copy behaves like the real repo),
-injects a fault into landing/feed.xml, and asserts the checker fails
-with the expected error message.
+injects a fault into landing/feed.xml or a landing page, and asserts the
+checker fails with the expected error message.
 
 Stdlib only. Run:  python3 tests/test_check.py
 """
@@ -19,13 +19,19 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECK = ROOT / "scripts" / "check.py"
 
 
-def run_check(feed_text: str | None = None):
+def run_check(feed_text: str | None = None, page_edits: dict | None = None):
     with tempfile.TemporaryDirectory(prefix="news-check-test-") as tmp:
         tmp = Path(tmp)
         shutil.copytree(ROOT / "scripts", tmp / "scripts")
         shutil.copytree(ROOT / "landing", tmp / "landing")
         if feed_text is not None:
             (tmp / "landing" / "feed.xml").write_text(feed_text, encoding="utf-8")
+        if page_edits:
+            for name, (old, new) in page_edits.items():
+                page = tmp / "landing" / name
+                text = page.read_text(encoding="utf-8")
+                assert old in text, f"test fixture drift: {old!r} not in {name}"
+                page.write_text(text.replace(old, new, 1), encoding="utf-8")
         proc = subprocess.run(
             [sys.executable, str(tmp / "scripts" / "check.py")],
             capture_output=True, text=True, timeout=60,
@@ -88,13 +94,32 @@ def t_off_domain_item_link_fails():
     assert "item link https://evil.example/x is not on" in out, out
 
 
+RSS_LINK = ('  <link rel="alternate" type="application/rss+xml"'
+            ' title="DOGS NEWS" href="./feed.xml">\n')
+
+
+def t_missing_rss_autodiscovery_fails():
+    code, out = run_check(page_edits={"thanks.html": (RSS_LINK, "")})
+    assert code != 0, "page without RSS autodiscovery should fail"
+    assert "thanks.html: missing RSS autodiscovery link" in out, out
+
+
+def t_wrong_rss_href_fails():
+    code, out = run_check(page_edits={
+        "privacy.html": ('href="./feed.xml"', 'href="./feed2.xml"')})
+    assert code != 0, "RSS autodiscovery pointing off feed.xml should fail"
+    assert "does not point at ./feed.xml" in out, out
+
+
 check("clean feed passes", t_clean_feed_passes)
 check("off-domain channel link fails", t_off_domain_channel_link_fails)
 check("wrong atom:self link fails", t_wrong_atom_self_link_fails)
 check("bad lastBuildDate fails", t_bad_last_build_date_fails)
 check("off-domain item link fails", t_off_domain_item_link_fails)
+check("missing RSS autodiscovery fails", t_missing_rss_autodiscovery_fails)
+check("wrong RSS href fails", t_wrong_rss_href_fails)
 
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print("\nall 5 tests passed")
+print("\nall 7 tests passed")
