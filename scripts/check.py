@@ -20,6 +20,7 @@ import argparse
 import re
 import sys
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 from pathlib import Path
 
 REL_REF = re.compile(r'''(?:src|href)="(\./[^"]+)"''')
@@ -130,6 +131,54 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
         if asset.suffix.lower() in {".png", ".webp", ".jpg", ".jpeg", ".gif", ".svg", ".ico"}:
             if asset.name not in referenced:
                 warn(f"unreferenced asset: landing/{asset.name}")
+
+    # --- 6. feed.xml must be a valid RSS channel on the canonical domain --------
+    feed = landing / "feed.xml"
+    feed_source = None
+    try:
+        feed_source = feed.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        warn("feed.xml is missing; readers expect one at /feed.xml")
+    if feed_source is not None:
+        try:
+            channel = ET.fromstring(feed_source).find("channel")
+            feed_parsed = True
+        except ET.ParseError as exc:
+            err(f"feed.xml does not parse: {exc}")
+            channel = None
+            feed_parsed = False
+        if not feed_parsed:
+            pass
+        elif channel is None:
+            err("feed.xml: no <channel> element found")
+        elif channel is not None:
+            for field in ("title", "link", "description"):
+                if channel.findtext(field, default="").strip() == "":
+                    err(f"feed.xml: channel is missing <{field}>")
+            atom_link = channel.find(
+                "{http://www.w3.org/2005/Atom}link")
+            expected_self = f"https://{cname}/feed.xml"
+            if atom_link is None:
+                warn("feed.xml: no atom self-link (expected "
+                     f"<link href=\"{expected_self}\" rel=\"self\" />)")
+            elif atom_link.get("href") != expected_self:
+                err(f"feed.xml: atom self-link {atom_link.get('href')!r} "
+                    f"is not the canonical {expected_self!r}")
+            build = channel.findtext("lastBuildDate", default="").strip()
+            if not build:
+                warn("feed.xml: no <lastBuildDate>; readers can't tell if it's fresh")
+            else:
+                try:
+                    built = datetime.strptime(build, "%a, %d %b %Y %H:%M:%S %z")
+                except ValueError:
+                    try:
+                        built = datetime.strptime(build, "%a, %d %b %Y %H:%M:%S %Z")
+                    except ValueError:
+                        built = None
+                if built is None:
+                    warn(f"feed.xml: <lastBuildDate> is not RFC 822: {build!r}")
+                elif (datetime.now(timezone.utc) - built).days > 30:
+                    warn(f"feed.xml: <lastBuildDate> {build!r} is over 30 days old")
 
     return errors, warnings
 
