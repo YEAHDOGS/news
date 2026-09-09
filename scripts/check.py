@@ -120,7 +120,9 @@ for asset in LANDING.iterdir():
         if asset.name not in referenced:
             warn(f"unreferenced asset: landing/{asset.name}")
 
-# --- 6. RSS feed skeleton stays valid XML -------------------------------------
+# --- 6. RSS feed stays valid XML and on the canonical domain --------------------
+from email.utils import parsedate_to_datetime
+
 feed = LANDING / "feed.xml"
 try:
     feed_root = ET.parse(feed).getroot()
@@ -138,6 +140,33 @@ if feed_root is not None:
             child = channel.find(tag)
             if child is None or not (child.text or "").strip():
                 err(f"feed.xml: <channel> missing non-empty <{tag}>")
+        # feed links must live on the canonical domain
+        feed_prefix = f"https://{cname}/"
+        chan_link = (channel.findtext("link") or "").strip()
+        if chan_link and not chan_link.startswith(feed_prefix):
+            err(f"feed.xml: <channel><link> {chan_link} is not on {feed_prefix}")
+        atom_ns = "{http://www.w3.org/2005/Atom}"
+        for atom_link in channel.findall(f"{atom_ns}link"):
+            if atom_link.get("rel") == "self":
+                href = (atom_link.get("href") or "").strip()
+                if href != feed_prefix + "feed.xml":
+                    err(f"feed.xml: atom:self link should be {feed_prefix}feed.xml")
+        for item in channel.findall("item"):
+            item_link = (item.findtext("link") or "").strip()
+            if item_link and not item_link.startswith(feed_prefix):
+                err(f"feed.xml: item link {item_link} is not on {feed_prefix}")
+            pub = (item.findtext("pubDate") or "").strip()
+            if pub:
+                try:
+                    parsedate_to_datetime(pub)
+                except (ValueError, TypeError):
+                    err(f"feed.xml: item pubDate {pub!r} is not valid RFC 822")
+        built = (channel.findtext("lastBuildDate") or "").strip()
+        if built:
+            try:
+                parsedate_to_datetime(built)
+            except (ValueError, TypeError):
+                err(f"feed.xml: lastBuildDate {built!r} is not valid RFC 822")
 
 # --- report -------------------------------------------------------------------
 for w in warnings:
