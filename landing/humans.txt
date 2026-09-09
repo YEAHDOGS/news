@@ -1,0 +1,10 @@
+/* TEAM */
+  Made by DOGS — https://wearedogs.net
+  Source: https://github.com/YEAHDOGS/news
+
+/* THANKS */
+  To everyone who reads past the fold.
+
+/* SITE */
+  Standards: HTML, CSS, a little JavaScript. No frameworks, no trackers.
+  The derp page lives at /derp.html. We don't judge.
