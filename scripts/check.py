@@ -653,6 +653,27 @@ if feed_root is not None and feed_root.tag == "rss":
             else:
                 seen_guids[gtext] = i
 
+# --- 13. feed item content completeness (title/description/link) ---------------
+# RSS 2.0 requires every <item> to carry a <title> or a <description> (at
+# least one, non-empty). An item with neither is invisible noise in every
+# aggregator — and it means the generator is broken, so it is a hard
+# error. <link> is technically optional in the spec, but a news item with
+# no link is a dead end for readers; that is a warning, not an error.
+if feed_root is not None and feed_root.tag == "rss":
+    channel = feed_root.find("channel")
+    if channel is not None:
+        for i, item in enumerate(channel.findall("item"), start=1):
+            title = (item.findtext("title") or "").strip()
+            desc = (item.findtext("description") or "").strip()
+            if not title and not desc:
+                err(f"feed.xml: item #{i} has neither a non-empty <title> "
+                    "nor <description> — RSS requires at least one, and "
+                    "aggregators render items as title + description")
+            link = (item.findtext("link") or "").strip()
+            if not link:
+                warn(f"feed.xml: item #{i} has no <link> — readers have "
+                     "nowhere to go")
+
 # --- report -------------------------------------------------------------------
 for w in warnings:
     print(f"warning: {w}")

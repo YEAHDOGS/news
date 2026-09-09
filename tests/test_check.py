@@ -671,7 +671,62 @@ check("duplicate item guids fail", t_duplicate_guid_fails)
 check("missing item guid warns", t_missing_guid_warns)
 check("unique item guids pass", t_unique_guids_pass)
 
+# --- §13 feed item content completeness --------------------------------------
+
+def _feed_with_custom_items(items_xml: list) -> str:
+    items = "".join(f"  <item>{x}</item>\n" for x in items_xml)
+    return real_feed().replace("</channel>", items + "  </channel>")
+
+
+def t_item_no_title_no_description_fails():
+    feed = _feed_with_custom_items([
+        '<link>https://news.wearedogs.net/</link>'
+        '<guid isPermaLink="false">s1</guid>'])
+    code, out = run_check(feed)
+    assert code != 0, "item with neither title nor description should fail"
+    assert "has neither a non-empty <title> nor <description>" in out, out
+
+
+def t_item_empty_title_and_description_fails():
+    feed = _feed_with_custom_items([
+        "<title>  </title><description></description>"
+        '<link>https://news.wearedogs.net/</link>'])
+    code, out = run_check(feed)
+    assert code != 0, "item with empty title+description should fail"
+    assert "has neither a non-empty <title> nor <description>" in out, out
+
+
+def t_item_title_only_passes():
+    feed = _feed_with_custom_items([
+        "<title>Only a title</title>"
+        '<link>https://news.wearedogs.net/</link>'])
+    code, out = run_check(feed)
+    assert code == 0, f"title-only item should pass:\n{out}"
+
+
+def t_item_description_only_passes():
+    feed = _feed_with_custom_items([
+        "<description>Only a description</description>"
+        '<link>https://news.wearedogs.net/</link>'])
+    code, out = run_check(feed)
+    assert code == 0, f"description-only item should pass:\n{out}"
+
+
+def t_item_no_link_warns():
+    feed = _feed_with_custom_items([
+        "<title>T</title><description>D</description>"])
+    code, out = run_check(feed)
+    assert code == 0, f"linkless item should only warn, not fail:\n{out}"
+    assert "has no <link>" in out, out
+
+
+check("item with no title/description fails", t_item_no_title_no_description_fails)
+check("item with empty title+description fails", t_item_empty_title_and_description_fails)
+check("title-only item passes", t_item_title_only_passes)
+check("description-only item passes", t_item_description_only_passes)
+check("linkless item warns", t_item_no_link_warns)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print(f"\nall {37 + 3 + 7 + 5 + 5 + 3} tests passed")
+print(f"\nall {37 + 3 + 7 + 5 + 5 + 3 + 5} tests passed")

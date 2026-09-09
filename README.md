@@ -174,6 +174,15 @@ silent story-loss. Still fully offline:
 - two items sharing the same `<guid>` — **error** (aggregators collapse
   them into a single story).
 
+### Rule §13 (feed item content completeness)
+
+RSS 2.0 requires every `<item>` to carry a `<title>` or a
+`<description>` — at least one, non-empty. An item with neither is
+invisible noise in every aggregator, and it means the generator is
+broken, so that is a hard **error**. `<link>` is optional in the spec,
+but a news item with no link is a dead end for readers — missing `<link>`
+is a **warning**, not an error.
+
 ## Roadmap
 
 From the landing page timeline:
