@@ -111,6 +111,45 @@ def t_wrong_rss_href_fails():
     assert "does not point at ./feed.xml" in out, out
 
 
+def _feed_with_item(title: str, description: str) -> str:
+    return real_feed().replace(
+        "</channel>",
+        f"  <item><title>{title}</title>"
+        f"<link>https://news.wearedogs.net/x</link>"
+        f"<description>{description}</description></item>\n  </channel>")
+
+
+def t_script_entity_in_description_fails():
+    feed = _feed_with_item(
+        "T", "&#60;script&#62;alert(1)&#60;/script&#62; headline")
+    code, out = run_check(feed)
+    assert code != 0, "entity-encoded <script> in description should fail"
+    assert "active markup <script>" in out, out
+
+
+def t_event_handler_entity_in_title_fails():
+    feed = _feed_with_item(
+        "&#60;img src=x onerror=alert(1)&#62; photo", "D")
+    code, out = run_check(feed)
+    assert code != 0, "entity-encoded onerror attribute in title should fail"
+    assert "event-handler attribute" in out, out
+
+
+def t_javascript_scheme_in_description_fails():
+    feed = _feed_with_item("T", "read more: javascript:alert(1)")
+    code, out = run_check(feed)
+    assert code != 0, "javascript: URL in description should fail"
+    assert "javascript: URL" in out, out
+
+
+def t_benign_entities_pass():
+    feed = _feed_with_item(
+        "Q&#38;A: how &#60;code&#62; tags work",
+        "Plain &#38; boring text — no active markup here.")
+    code, out = run_check(feed)
+    assert code == 0, f"benign entities should pass, got:\n{out}"
+
+
 check("clean feed passes", t_clean_feed_passes)
 check("off-domain channel link fails", t_off_domain_channel_link_fails)
 check("wrong atom:self link fails", t_wrong_atom_self_link_fails)
@@ -118,8 +157,15 @@ check("bad lastBuildDate fails", t_bad_last_build_date_fails)
 check("off-domain item link fails", t_off_domain_item_link_fails)
 check("missing RSS autodiscovery fails", t_missing_rss_autodiscovery_fails)
 check("wrong RSS href fails", t_wrong_rss_href_fails)
+check("entity-encoded <script> in description fails",
+      t_script_entity_in_description_fails)
+check("entity-encoded onerror in title fails",
+      t_event_handler_entity_in_title_fails)
+check("javascript: URL in description fails",
+      t_javascript_scheme_in_description_fails)
+check("benign escaped entities pass", t_benign_entities_pass)
 
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print("\nall 7 tests passed")
+print("\nall 11 tests passed")

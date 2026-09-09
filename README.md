@@ -53,8 +53,9 @@ Pages on the custom domain `news.wearedogs.net` (see `landing/CNAME`).
 
 The `checks.yml` workflow runs `scripts/check.py` on every push and PR to
 catch broken internal links, dangling anchors, missing SEO tags,
-sitemap/robots.txt drift, feed.xml validation failures, and missing
-RSS autodiscovery links before anything ships.
+sitemap/robots.txt drift, feed.xml validation failures (including active
+markup smuggled into titles/descriptions as entities — an XSS guard), and
+missing RSS autodiscovery links before anything ships.
 
 ## Roadmap
 

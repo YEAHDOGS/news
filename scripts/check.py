@@ -177,6 +177,42 @@ if feed_root is not None:
             except (ValueError, TypeError):
                 err(f"feed.xml: lastBuildDate {built!r} is not valid RFC 822")
 
+    # --- 6b. feed titles/descriptions must not smuggle active markup (XSS) -----
+    # Aggregators render <title>/<description> as HTML, so entities like
+    # &#60;script&#62; sail through the XML parser as literal text that becomes
+    # live markup downstream. Check the *parsed* text, not the raw source.
+    active_tag = re.compile(
+        r"<\s*(script|iframe|object|embed|link|style|form|input|button)\b", re.I)
+    event_attr = re.compile(r"\bon\w+\s*=", re.I)
+    bad_scheme = re.compile(r"javascript\s*:", re.I)
+
+    def _scan_feed_text(elem: ET.Element | None, where: str) -> None:
+        text = (elem.text or "") if elem is not None else ""
+        if not text.strip():
+            return
+        m = active_tag.search(text)
+        if m:
+            err(f"feed.xml: {where} contains active markup "
+                f"<{m.group(1)}> — escape it (&lt;{m.group(1)}&gt;) or remove it")
+            return
+        if event_attr.search(text):
+            err(f"feed.xml: {where} contains an on* event-handler attribute "
+                "— escape it or remove it")
+            return
+        if bad_scheme.search(text):
+            err(f"feed.xml: {where} contains a javascript: URL "
+                "— escape it or remove it")
+
+    if feed_root is not None and feed_root.tag == "rss":
+        channel = feed_root.find("channel")
+        if channel is not None:
+            _scan_feed_text(channel.find("title"), "<channel><title>")
+            _scan_feed_text(channel.find("description"), "<channel><description>")
+            for i, item in enumerate(channel.findall("item"), start=1):
+                _scan_feed_text(item.find("title"), f"item #{i} <title>")
+                _scan_feed_text(item.find("description"),
+                                f"item #{i} <description>")
+
 # --- report -------------------------------------------------------------------
 for w in warnings:
     print(f"warning: {w}")
