@@ -1,0 +1,26 @@
+name: Checks
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'landing/**'
+      - 'scripts/**'
+      - '.github/workflows/checks.yml'
+  pull_request:
+    paths:
+      - 'landing/**'
+      - 'scripts/**'
+      - '.github/workflows/checks.yml'
+  workflow_dispatch:
+
+jobs:
+  sanity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run site sanity checks
+        run: python3 scripts/check.py
