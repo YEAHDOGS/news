@@ -9,6 +9,7 @@ Stdlib only — no dependencies to install.
 """
 
 import re
+import struct
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -310,6 +311,102 @@ for page in html_files:
     text = page.read_text(encoding="utf-8")
     for prop, url in OG_URL_PROP.findall(text):
         _check_og_url(page.name, prop, url)
+
+# --- 8b. og:image dimension claims match the actual file ------------------------
+# §8 verifies og:image *resolves* — but declared og:image:width/height that
+# disagree with the real file are their own live defect: social scrapers
+# reserve card layout from the declared numbers and render a broken card.
+# Stdlib-only dimension readers for PNG/GIF/JPEG (per Open Graph, og:image
+# should be a real raster file). Unsupported formats, external URLs, and
+# already-§8-reported problems are skipped, never fetched.
+OG_IMAGE_PROP = re.compile(
+    r'<meta\s+property="og:image(?::(width|height))?"\s+content="([^"]+)"',
+    re.I)
+
+
+def _image_dims(path: Path):
+    """Return (width, height) for PNG/GIF/JPEG files, else None."""
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    if len(data) > 24 and data[:8] == b"\x89PNG\r\n\x1a\n" \
+            and data[12:16] == b"IHDR":
+        return struct.unpack(">II", data[16:24])
+    if len(data) > 10 and data[:6] in (b"GIF87a", b"GIF89a"):
+        return struct.unpack("<HH", data[6:10])
+    if len(data) > 2 and data[:2] == b"\xff\xd8":
+        i, n = 2, len(data)
+        while i + 1 < n:
+            if data[i] != 0xFF:
+                return None
+            while i + 1 < n and data[i + 1] == 0xFF:
+                i += 1  # fill bytes
+            marker = data[i + 1]
+            if marker == 0xD9:
+                return None
+            if marker == 0xD8 or 0xD0 <= marker <= 0xD7:
+                i += 2  # standalone markers carry no length
+                continue
+            if i + 4 > n:
+                return None
+            seglen = int.from_bytes(data[i + 2:i + 4], "big")
+            if seglen < 2 or i + 2 + seglen > n:
+                return None
+            if marker == 0xDA:
+                return None  # start of scan data — no SOF to find
+            if seglen >= 7 and marker not in (0xC4, 0xC8, 0xCC) \
+                    and 0xC0 <= marker <= 0xCF:
+                # SOF: [len][precision][height][width]
+                h = int.from_bytes(data[i + 5:i + 7], "big")
+                w = int.from_bytes(data[i + 7:i + 9], "big")
+                return (w, h)
+            i += 2 + seglen
+    return None
+
+
+for page in html_files:
+    text = page.read_text(encoding="utf-8")
+    img_url = None
+    claims: dict[str, str | None] = {"width": None, "height": None}
+    for kind, content in OG_IMAGE_PROP.findall(text):
+        content = content.strip()
+        if kind:
+            claims[kind.lower()] = content
+        else:
+            img_url = content
+    if img_url is None:
+        continue
+    target, _, is_local = _resolve_local(img_url)
+    if not is_local or target is None:
+        continue  # §8 already notes external — not checked (offline)
+    try:
+        target.relative_to(LANDING)
+    except ValueError:
+        continue  # §8 already errors on escape
+    if not target.exists():
+        continue  # §8 already errors on missing
+    actual = _image_dims(target)
+    if actual is None:
+        continue  # unsupported format (e.g. SVG) — not checked
+    w_claim, h_claim = claims["width"], claims["height"]
+    if w_claim is None and h_claim is None:
+        warn(f"{page.name}: og:image {target.name} declares no "
+             "og:image:width/height — scrapers use them for card layout")
+        continue
+    bad = [(k, v) for k, v in (("width", w_claim), ("height", h_claim))
+           if v is not None and not v.isdigit()]
+    if bad:
+        detail = ", ".join(f"og:image:{k}={v!r}" for k, v in bad)
+        err(f"{page.name}: {detail} is not a number")
+        continue
+    if w_claim is None or h_claim is None:
+        warn(f"{page.name}: og:image declares only one of "
+             "og:image:width/height — declare both")
+        continue
+    if (int(w_claim), int(h_claim)) != actual:
+        err(f"{page.name}: og:image:width/height {w_claim}x{h_claim} do not "
+            f"match the actual {target.name} size {actual[0]}x{actual[1]}")
 
 # --- 9. canonical link integrity --------------------------------------------------
 # §2 only checks a canonical tag *exists*; it never verified the value.

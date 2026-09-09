@@ -371,7 +371,57 @@ check("future-dated item fails", t_future_item_fails)
 check("missing item pubDate warns", t_missing_pubdate_warns)
 check("stale channel lastBuildDate warns", t_stale_channel_builddate_warns)
 
+# --- §8b og:image dimension integrity ---------------------------------------------
+
+OG_W = '<meta property="og:image:width" content="1200">'
+OG_H = '<meta property="og:image:height" content="630">'
+
+
+def t_og_image_dim_mismatch_fails():
+    code, out = run_check(page_edits={"index.html": (OG_W, OG_W.replace(
+        'content="1200"', 'content="800"'))})
+    assert code != 0, "og:image:width disagreeing with og.png should fail"
+    assert "do not match the actual og.png size 1200x630" in out, out
+
+
+def t_og_image_height_mismatch_fails():
+    code, out = run_check(page_edits={"privacy.html": (OG_H, OG_H.replace(
+        'content="630"', 'content="600"'))})
+    assert code != 0, "og:image:height disagreeing with og.png should fail"
+    assert "do not match the actual og.png size" in out, out
+
+
+def t_og_image_dims_missing_warns():
+    code, out = run_check(page_edits={"thanks.html": (
+        OG_W + "\n  " + OG_H + "\n", "")})
+    assert code == 0, f"missing og:image dims should only warn:\n{out}"
+    assert "no og:image:width/height" in out, out
+
+
+def t_og_image_half_declared_warns():
+    code, out = run_check(page_edits={"derp.html": (OG_W + "\n  ", "")})
+    assert code == 0, f"one-sided og:image dims should only warn:\n{out}"
+    assert "declares only one of" in out, out
+
+
+def t_og_image_dim_nonnumeric_fails():
+    code, out = run_check(page_edits={"404.html": (OG_W, OG_W.replace(
+        'content="1200"', 'content="wide"'))})
+    assert code != 0, "non-numeric og:image:width should fail"
+    assert "is not a number" in out, out
+
+
+check("og:image:width disagreeing with the file fails",
+      t_og_image_dim_mismatch_fails)
+check("og:image:height disagreeing with the file fails",
+      t_og_image_height_mismatch_fails)
+check("missing og:image dimensions warn", t_og_image_dims_missing_warns)
+check("half-declared og:image dimensions warn",
+      t_og_image_half_declared_warns)
+check("non-numeric og:image dimension fails",
+      t_og_image_dim_nonnumeric_fails)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print("\nall 32 tests passed")
+print("\nall 37 tests passed")
