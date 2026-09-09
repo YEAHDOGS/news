@@ -121,6 +121,28 @@ timestamp problems using only the RFC 822 dates the feed already carries
 The threshold defaults to 30 days and is configurable via the
 `NEWS_STALE_DAYS` environment variable.
 
+### Rule §11 (feed hardening)
+
+Beyond validity, the feed is hardened against the ways a feed becomes an
+attack or robustness vector — fully offline, as always:
+
+- **Bomb-guard parsing:** `feed.xml` and `sitemap.xml` are rejected when
+  they carry a `DOCTYPE` declaration (internal entity expansion — "billion
+  laughs" — still eats memory even though external entities are never
+  resolved) or exceed 512 KiB. Non-UTF-8 bytes are rejected too.
+- **URL scheme policy:** feed links are http(s)-only. `javascript:`,
+  `data:`, `vbscript:`, `file:`, `about:`, and `blob:` links in channel,
+  item, and permalink `<guid>` fields (which default to permalinks per the
+  RSS spec) are hard errors; any other absolute scheme off the canonical
+  domain fails the existing §6 domain rule.
+- **Content size caps:** at most 200 items, item titles at most 300
+  characters, item descriptions at most 32 KiB — oversized content is an
+  error, not a warning, because aggregators truncate or drop it anyway.
+- **Widened XSS scan:** the §6b active-markup/event-handler/scheme scan
+  now covers item `<guid>`, `<category>`, `<author>`, and `<source>` in
+  addition to titles and descriptions, and flags `data:` and `vbscript:`
+  URLs alongside `javascript:`.
+
 ## Roadmap
 
 From the landing page timeline:
