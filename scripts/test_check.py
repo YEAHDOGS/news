@@ -32,6 +32,7 @@ BASE_HTML = """<!doctype html>
 <body>
 <h1 id="top">DOGS NEWS</h1>
 <p><a href="#top">back to top</a></p>
+<p class="feed-line">last updated <time datetime="2026-09-09">Sep 9, 2026</time></p>
 </body>
 </html>
 """
@@ -203,6 +204,20 @@ class FixtureSite(unittest.TestCase):
         self.assertEqual(errors, [], errors)
         self.assertTrue(any("feed.xml is missing" in w for w in warnings),
                         warnings)
+
+    def test_feed_line_missing_errors(self):
+        self.write("index.html", BASE_HTML.replace(
+            '<p class="feed-line">last updated '
+            '<time datetime="2026-09-09">Sep 9, 2026</time></p>', ""))
+        errors, _ = self.checks()
+        self.assertTrue(any("feed-line" in e for e in errors), errors)
+
+    def test_feed_line_date_mismatch_errors(self):
+        self.write("feed.xml", FEED.format(
+            date="Tue, 08 Sep 2026 04:00:00 -0500"))
+        errors, _ = self.checks()
+        self.assertTrue(any("does not match" in e and "lastBuildDate" in e
+                            for e in errors), errors)
 
 
 class MissingFileTests(FixtureSite):

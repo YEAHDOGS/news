@@ -227,6 +227,7 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
     # --- 6. feed.xml must be a valid RSS channel on the canonical domain --------
     feed = landing / "feed.xml"
     feed_source = None
+    feed_built = None  # datetime from <lastBuildDate>, set when parseable
     try:
         feed_source = feed.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -280,6 +281,25 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
                     warn(f"feed.xml: <lastBuildDate> is not RFC 822: {build!r}")
                 elif (datetime.now(timezone.utc) - built).days > 30:
                     warn(f"feed.xml: <lastBuildDate> {build!r} is over 30 days old")
+                else:
+                    feed_built = built
+
+    # --- 7. footer "last updated" line must match feed.xml --------------------
+    # The landing page shows a visible feed freshness line; its date must be
+    # the same day as feed.xml's <lastBuildDate> so they can't drift apart.
+    if feed_built is not None:
+        index_source = read_text(landing / "index.html")
+        if index_source is not None:
+            m = re.search(
+                r'class="[^"]*\bfeed-line\b[^"]*"[^>]*>'
+                r'.*?<time\s+datetime="(\d{4}-\d{2}-\d{2})"',
+                index_source, re.DOTALL)
+            if not m:
+                err('index.html: missing visible "last updated" feed line '
+                    '(<p class="feed-line"> containing <time datetime="YYYY-MM-DD">)')
+            elif m.group(1) != feed_built.strftime("%Y-%m-%d"):
+                err(f"index.html: feed-line date {m.group(1)} does not match "
+                    f'feed.xml <lastBuildDate> ({feed_built.strftime("%Y-%m-%d")})')
 
     return errors, warnings
 
