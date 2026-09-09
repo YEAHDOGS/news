@@ -316,7 +316,62 @@ check("multiple canonicals fail", t_multiple_canonicals_fail)
 check("og:url disagreeing with canonical fails", t_ogurl_canonical_mismatch_fails)
 check("duplicate canonical across pages fails", t_duplicate_canonical_fails)
 
+# --- §10 feed date integrity ----------------------------------------------------
+
+from datetime import datetime, timedelta, timezone
+
+
+def _rfc822(days_ago: float) -> str:
+    return (datetime.now(timezone.utc) - timedelta(days=days_ago)).strftime(
+        "%a, %d %b %Y %H:%M:%S +0000")
+
+
+def _feed_with_pubdate(pub: str) -> str:
+    return real_feed().replace(
+        "</channel>",
+        f"  <item><title>T</title><link>https://news.wearedogs.net/</link>"
+        f"<pubDate>{pub}</pubDate><description>D</description></item>\n  </channel>")
+
+
+def t_fresh_item_passes():
+    code, out = run_check(_feed_with_pubdate(_rfc822(1)))
+    assert code == 0, f"fresh item should pass:\n{out}"
+
+
+def t_stale_item_warns():
+    code, out = run_check(_feed_with_pubdate(_rfc822(45)))
+    assert code == 0, f"stale item should only warn, not fail:\n{out}"
+    assert "older than" in out and "stale" in out, out
+
+
+def t_future_item_fails():
+    code, out = run_check(_feed_with_pubdate(_rfc822(-2)))
+    assert code != 0, "future-dated item should fail"
+    assert "in the future" in out, out
+
+
+def t_missing_pubdate_warns():
+    feed = _feed_with_item("T", "D")  # no pubDate on the item
+    code, out = run_check(feed)
+    assert code == 0, f"missing pubDate should only warn:\n{out}"
+    assert "no pubDate" in out, out
+
+
+def t_stale_channel_builddate_warns():
+    feed = real_feed().replace(
+        "Wed, 09 Sep 2026 04:00:00 -0500", _rfc822(45))
+    code, out = run_check(feed)
+    assert code == 0, f"stale lastBuildDate should only warn:\n{out}"
+    assert "lastBuildDate" in out and "stale" in out, out
+
+
+check("fresh item passes", t_fresh_item_passes)
+check("stale item warns", t_stale_item_warns)
+check("future-dated item fails", t_future_item_fails)
+check("missing item pubDate warns", t_missing_pubdate_warns)
+check("stale channel lastBuildDate warns", t_stale_channel_builddate_warns)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print("\nall 27 tests passed")
+print("\nall 32 tests passed")

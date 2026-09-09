@@ -374,6 +374,64 @@ for href, owners in canonical_owners.items():
         err(f"canonical href {href} is claimed by multiple pages: "
             f"{', '.join(owners)}")
 
+# --- 10. feed date integrity (stale / future-dated / missing dates) ---------------
+# A news feed whose newest story is months old is either broken or dead —
+# and a pubDate in the future is always a generator bug. Offline-friendly:
+# only compares the RFC 822 timestamps the feed already carries (already
+# parsed by §6), so no network is involved. The stale threshold is
+# configurable via the NEWS_STALE_DAYS environment variable (default 30).
+#   - pubDate in the future (beyond a small clock-skew allowance) -> error
+#   - pubDate/lastBuildDate older than the threshold -> warning
+#   - item with no pubDate at all -> warning (aggregators sort by date)
+from datetime import datetime, timedelta, timezone
+import os
+
+STALE_DAYS = int(os.environ.get("NEWS_STALE_DAYS", "30"))
+FUTURE_SKEW = timedelta(minutes=15)  # tolerate minor clock skew
+
+
+def _feed_datetime(raw: str):
+    """Parse an RFC 822 date, normalizing naive datetimes to UTC."""
+    try:
+        dt = parsedate_to_datetime(raw)
+    except (ValueError, TypeError):
+        return None  # §6 already errors on unparsable dates
+    if dt is not None and dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+now = datetime.now(timezone.utc)
+stale_after = now - timedelta(days=STALE_DAYS)
+
+if feed_root is not None and feed_root.tag == "rss":
+    channel = feed_root.find("channel")
+
+    def _check_feed_date(where: str, raw: str) -> None:
+        raw = (raw or "").strip()
+        if not raw:
+            return
+        dt = _feed_datetime(raw)
+        if dt is None:
+            return
+        if dt > now + FUTURE_SKEW:
+            err(f"feed.xml: {where} date {raw!r} is in the future — "
+                "likely a generator bug")
+        elif dt < stale_after:
+            warn(f"feed.xml: {where} date {raw!r} is older than "
+                 f"{STALE_DAYS} days — feed may be stale")
+
+    if channel is not None:
+        _check_feed_date("<channel><lastBuildDate>",
+                         channel.findtext("lastBuildDate"))
+        for i, item in enumerate(channel.findall("item"), start=1):
+            raw_pub = (item.findtext("pubDate") or "").strip()
+            if not raw_pub:
+                warn(f"feed.xml: item #{i} has no pubDate — "
+                     "aggregators sort by date")
+            else:
+                _check_feed_date(f"item #{i} <pubDate>", raw_pub)
+
 # --- report -------------------------------------------------------------------
 for w in warnings:
     print(f"warning: {w}")
