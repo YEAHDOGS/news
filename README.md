@@ -92,6 +92,22 @@ absolute URL on the canonical domain naming *that page*
 query string or fragment; `og:url`, when present, must equal the canonical
 href exactly; and no two pages may share the same canonical.
 
+### Rule §10 (feed date integrity)
+
+A news feed whose newest story is months old is either broken or dead —
+and a `pubDate` in the future is always a generator bug. Rule §10 flags
+timestamp problems using only the RFC 822 dates the feed already carries
+(still fully offline, no fetching):
+
+- a `pubDate` in the future (beyond a 15-minute clock-skew allowance) —
+  **error**,
+- an item `pubDate` or channel `lastBuildDate` older than the stale
+  threshold — **warning**,
+- an item with no `pubDate` at all — **warning** (aggregators sort by date).
+
+The threshold defaults to 30 days and is configurable via the
+`NEWS_STALE_DAYS` environment variable.
+
 ## Roadmap
 
 From the landing page timeline:
