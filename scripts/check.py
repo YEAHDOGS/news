@@ -6,6 +6,10 @@ basics, sitemap/robots.txt drift, feed.xml problems, and broken
 canonical-domain URLs hiding in <meta> content= attributes (og:image,
 twitter:image) before anything ships.
 
+The canonical <link> itself is also validated (section 9): it must be
+absolute, on the canonical domain, and self-referential — an off-domain
+or wrong-page canonical quietly hands search indexing elsewhere.
+
 Errors fail the run; warnings are informational.
 Stdlib only — no dependencies to install.
 
@@ -31,6 +35,12 @@ ID_ATTR = re.compile(r'''\sid="([^"]+)"''')
 OG_TAG = re.compile(r'''<meta\s+property="og:([^"]+)"''')
 META_CONTENT_URL = re.compile(
     r'''<meta[^>]*?content="(https?://[^"]+)"''', re.IGNORECASE)
+CANONICAL_LINK = re.compile(
+    r'''<link[^>]*?rel=["']canonical["'][^>]*?href=["']([^"']*)["']''',
+    re.IGNORECASE)
+CANONICAL_LINK_ALT = re.compile(
+    r'''<link[^>]*?href=["']([^"']*)["'][^>]*?rel=["']canonical["']''',
+    re.IGNORECASE)
 
 
 def run_checks(root: Path) -> tuple[list[str], list[str]]:
@@ -323,6 +333,51 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
                 continue
             for m in META_CONTENT_URL.finditer(text):
                 resolve_same_domain(page, m.group(1))
+
+    # --- 9. canonical links must be absolute, on-domain, self-referential -----
+    # Section 2 only checks a canonical link *exists*. An off-domain
+    # canonical quietly hands search indexing to someone else's URL, and a
+    # canonical naming the wrong on-domain page marks this page as a
+    # duplicate. Verify both from CNAME + the page list — no network needed.
+    # (Section 1b already verifies an absolute canonical's target file
+    # exists; this section validates the canonical's own meaning.)
+    if canon_host is not None:
+        canon_lower = canon_host.lower()
+        for page in html_files:
+            text = page_text(page)
+            if text is None:
+                continue
+            cm = (CANONICAL_LINK.search(text)
+                  or CANONICAL_LINK_ALT.search(text))
+            if cm is None:
+                continue  # section 2 already reported the missing canonical
+            href = cm.group(1).strip()
+            if not href:
+                err(f"{page.name}: canonical link has an empty href")
+                continue
+            if href.lower().startswith(("http://", "https://")):
+                host = href.split("://", 1)[1].split("/", 1)[0]
+                if host.lower() != canon_lower:
+                    err(f"{page.name}: canonical {href!r} is off the "
+                        f"canonical domain {canon_host}")
+                    continue
+                parts = href.split("://", 1)[1].split("/", 1)
+                canon_path = parts[1] if len(parts) > 1 else ""
+            else:
+                # relative canonicals are legal (they resolve against the
+                # page URL) but best practice is absolute; keep this soft
+                warn(f"{page.name}: canonical {href!r} is relative; "
+                     "canonical URLs should be absolute")
+                canon_path = href
+            canon_path = canon_path.split("#", 1)[0].split("?", 1)[0]
+            canon_path = canon_path.lstrip("./")  # "./x.html" -> "x.html"
+            # a bare-domain canonical (https://host/) means index.html
+            if canon_path == "":
+                canon_path = "index.html"
+            expected = "index.html" if page.name == "index.html" else page.name
+            if canon_path != expected:
+                err(f"{page.name}: canonical {href!r} is not self-referential "
+                    f"(expected https://{canon_host}/{'' if expected == 'index.html' else expected})")
 
     return errors, warnings
 

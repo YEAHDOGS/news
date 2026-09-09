@@ -356,6 +356,65 @@ class AbsoluteLinkTests(FixtureSite):
         self.assertTrue(any("escapes landing/" in e for e in errors), errors)
 
 
+class CanonicalLinkTests(FixtureSite):
+    """Canonical <link> tags must be absolute, on the canonical domain, and
+    self-referential. An off-domain or wrong-page canonical quietly hands
+    search indexing elsewhere, so the checker must catch it."""
+
+    CANONICAL = ('<link rel="canonical" '
+                 'href="https://news.wearedogs.net/">')
+
+    def canon(self, href):
+        self.write("index.html", BASE_HTML.replace(
+            self.CANONICAL, f'<link rel="canonical" href="{href}">'))
+        return self.checks()
+
+    def test_self_canonical_passes(self):
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_off_domain_canonical_errors(self):
+        errors, _ = self.canon("https://example.com/")
+        self.assertTrue(any("canonical" in e and "off the canonical domain" in e
+                            for e in errors), errors)
+
+    def test_canonical_to_wrong_page_errors(self):
+        errors, _ = self.canon("https://news.wearedogs.net/privacy.html")
+        self.assertTrue(any("canonical" in e and "not self-referential" in e
+                            for e in errors), errors)
+
+    def test_canonical_with_trailing_slash_passes_for_index(self):
+        self.write("index.html", BASE_HTML.replace(
+            self.CANONICAL,
+            '<link rel="canonical" href="https://news.wearedogs.net/index.html">'))
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_relative_canonical_warns(self):
+        errors, warnings = self.canon("./index.html")
+        self.assertEqual(errors, [], errors)
+        self.assertTrue(any("canonical" in w and "relative" in w
+                            for w in warnings), warnings)
+
+    def test_canonical_strips_query_and_fragment(self):
+        errors, warnings = self.canon("https://news.wearedogs.net/?utm=x#top")
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_empty_canonical_href_errors(self):
+        errors, _ = self.canon("")
+        self.assertTrue(any("canonical" in e and "empty href" in e
+                            for e in errors), errors)
+
+    def test_canonical_skipped_when_cname_missing(self):
+        (self.landing / "CNAME").unlink()
+        errors, _ = self.canon("https://example.com/")
+        # only the CNAME problem is reported; no crash, no canonical check
+        self.assertEqual(errors, ["CNAME is missing"], errors)
+
+
 class RealTreeTest(unittest.TestCase):
     """The actual repo tree the CI ships must pass clean."""
 
