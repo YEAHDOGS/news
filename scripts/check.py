@@ -256,7 +256,7 @@ if feed_root is not None:
     active_tag = re.compile(
         r"<\s*(script|iframe|object|embed|link|style|form|input|button)\b", re.I)
     event_attr = re.compile(r"\bon\w+\s*=", re.I)
-    bad_scheme = re.compile(r"javascript\s*:", re.I)
+    bad_scheme = re.compile(r"(javascript|data|vbscript)\s*:", re.I)
 
     def _scan_feed_text(elem: ET.Element | None, where: str) -> None:
         text = (elem.text or "") if elem is not None else ""
@@ -271,8 +271,9 @@ if feed_root is not None:
             err(f"feed.xml: {where} contains an on* event-handler attribute "
                 "— escape it or remove it")
             return
-        if bad_scheme.search(text):
-            err(f"feed.xml: {where} contains a javascript: URL "
+        m = bad_scheme.search(text)
+        if m:
+            err(f"feed.xml: {where} contains a {m.group(1).lower()}: URL "
                 "— escape it or remove it")
 
     if feed_root is not None and feed_root.tag == "rss":
@@ -284,6 +285,12 @@ if feed_root is not None:
                 _scan_feed_text(item.find("title"), f"item #{i} <title>")
                 _scan_feed_text(item.find("description"),
                                 f"item #{i} <description>")
+                # aggregators render these as text/links too — same rules
+                _scan_feed_text(item.find("guid"), f"item #{i} <guid>")
+                _scan_feed_text(item.find("author"), f"item #{i} <author>")
+                _scan_feed_text(item.find("source"), f"item #{i} <source>")
+                for j, cat in enumerate(item.findall("category"), start=1):
+                    _scan_feed_text(cat, f"item #{i} <category #{j}>")
 
 # --- 7. feed item/channel links resolve to local files -------------------------
 # Local-only link integrity: a link on the site's canonical domain must map

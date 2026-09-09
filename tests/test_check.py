@@ -578,7 +578,60 @@ check("overlong item title fails", t_long_title_fails)
 check("title length boundary passes", t_title_boundary_passes)
 check("overlong item description fails", t_long_description_fails)
 
+# --- §6b extended XSS scan (guid/category/author/source, data:/vbscript:) ----
+
+
+def t_data_scheme_in_description_fails():
+    feed = _feed_with_item("T", "see data:text/html;base64,PGI+")
+    code, out = run_check(feed)
+    assert code != 0, "data: URL in description should fail"
+    assert "data: URL" in out, out
+
+
+def t_vbscript_scheme_in_title_fails():
+    feed = _feed_with_item("vbscript:msgbox(1) here", "D")
+    code, out = run_check(feed)
+    assert code != 0, "vbscript: URL in title should fail"
+    assert "vbscript: URL" in out, out
+
+
+def t_script_entity_in_guid_fails():
+    feed = _feed_with_guid(
+        '<guid isPermaLink="false">&#60;script&#62;x&#60;/script&#62;</guid>')
+    code, out = run_check(feed)
+    assert code != 0, "entity-encoded <script> in guid should fail"
+    assert "active markup <script>" in out, out
+
+
+def t_event_handler_entity_in_category_fails():
+    feed = real_feed().replace(
+        "</channel>",
+        '  <item><title>T</title><link>https://news.wearedogs.net/</link>'
+        '<category>&#60;img src=x onerror=alert(1)&#62;</category>'
+        "<description>D</description></item>\n  </channel>")
+    code, out = run_check(feed)
+    assert code != 0, "entity-encoded onerror in category should fail"
+    assert "event-handler attribute" in out, out
+
+
+def t_benign_author_passes():
+    feed = real_feed().replace(
+        "</channel>",
+        '  <item><title>T</title><link>https://news.wearedogs.net/</link>'
+        "<author>user@wearedogs.net (the founder)</author>"
+        "<description>D</description></item>\n  </channel>")
+    code, out = run_check(feed)
+    assert code == 0, f"benign author should pass:\n{out}"
+
+
+check("data: URL in description fails", t_data_scheme_in_description_fails)
+check("vbscript: URL in title fails", t_vbscript_scheme_in_title_fails)
+check("entity-encoded <script> in guid fails", t_script_entity_in_guid_fails)
+check("entity-encoded onerror in category fails",
+      t_event_handler_entity_in_category_fails)
+check("benign author passes", t_benign_author_passes)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print(f"\nall {37 + 3 + 7 + 5} tests passed")
+print(f"\nall {37 + 3 + 7 + 5 + 5} tests passed")
