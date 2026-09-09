@@ -596,6 +596,33 @@ if feed_root is not None and feed_root.tag == "rss":
             else:
                 _check_feed_date(f"item #{i} <pubDate>", raw_pub)
 
+# --- 11. feed content size caps -------------------------------------------------
+# Oversized feed content is a robustness hazard: aggregators truncate or
+# drop long titles, and a runaway description bloats every subscriber's
+# parser. Caps keep the feed aggregator-friendly and the checker fast.
+MAX_FEED_ITEMS = 200
+MAX_TITLE_CHARS = 300
+MAX_DESCRIPTION_BYTES = 32 * 1024
+
+if feed_root is not None and feed_root.tag == "rss":
+    channel = feed_root.find("channel")
+    if channel is not None:
+        sized_items = channel.findall("item")
+        if len(sized_items) > MAX_FEED_ITEMS:
+            err(f"feed.xml: {len(sized_items)} items — over the "
+                f"{MAX_FEED_ITEMS} item cap; trim or paginate the feed")
+        for i, item in enumerate(sized_items, start=1):
+            title = item.findtext("title") or ""
+            if len(title) > MAX_TITLE_CHARS:
+                err(f"feed.xml: item #{i} <title> is {len(title)} chars "
+                    f"(limit {MAX_TITLE_CHARS}) — aggregators truncate long "
+                    "titles")
+            desc = item.findtext("description") or ""
+            desc_bytes = len(desc.encode("utf-8"))
+            if desc_bytes > MAX_DESCRIPTION_BYTES:
+                err(f"feed.xml: item #{i} <description> is {desc_bytes} "
+                    f"bytes (limit {MAX_DESCRIPTION_BYTES}) — trim it")
+
 # --- report -------------------------------------------------------------------
 for w in warnings:
     print(f"warning: {w}")

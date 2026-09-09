@@ -532,7 +532,53 @@ check("javascript: permalink guid is rejected", t_guid_javascript_permalink_fail
 check("guid defaults to isPermaLink=true", t_guid_default_is_permalink_fails)
 check("non-permalink guid passes", t_guid_nonpermalink_passes)
 
+# --- §11b feed content size caps ------------------------------------------------
+
+
+def _feed_with_n_items(n: int, title: str = "T", desc: str = "D") -> str:
+    items = "".join(
+        f"  <item><title>{title}</title>"
+        f"<link>https://news.wearedogs.net/</link>"
+        f"<description>{desc}</description></item>\n"
+        for _ in range(n))
+    return real_feed().replace("</channel>", items + "  </channel>")
+
+
+def t_too_many_items_fails():
+    code, out = run_check(_feed_with_n_items(201))
+    assert code != 0, "201 items should fail the item cap"
+    assert "201 items" in out and "item cap" in out, out
+
+
+def t_item_cap_boundary_passes():
+    code, out = run_check(_feed_with_n_items(200))
+    assert code == 0, f"exactly 200 items should pass:\n{out}"
+
+
+def t_long_title_fails():
+    code, out = run_check(_feed_with_n_items(1, title="T" * 400))
+    assert code != 0, "400-char title should fail"
+    assert "400 chars" in out and "limit 300" in out, out
+
+
+def t_title_boundary_passes():
+    code, out = run_check(_feed_with_n_items(1, title="T" * 300))
+    assert code == 0, f"exactly 300-char title should pass:\n{out}"
+
+
+def t_long_description_fails():
+    code, out = run_check(_feed_with_n_items(1, desc="D" * (40 * 1024)))
+    assert code != 0, "40 KiB description should fail"
+    assert "limit 32768" in out, out
+
+
+check("too many feed items fail", t_too_many_items_fails)
+check("item cap boundary passes", t_item_cap_boundary_passes)
+check("overlong item title fails", t_long_title_fails)
+check("title length boundary passes", t_title_boundary_passes)
+check("overlong item description fails", t_long_description_fails)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print(f"\nall {37 + 3 + 7} tests passed")
+print(f"\nall {37 + 3 + 7 + 5} tests passed")
