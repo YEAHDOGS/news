@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REL_REF = re.compile(r'''(?:src|href)="(\./[^"]+)"''')
+ABS_URL = re.compile(r'''(?:src|href)="(https?://[^"]+)"''')
 FRAGMENT = re.compile(r'''href="#([^"]+)"''')
 ID_ATTR = re.compile(r'''\sid="([^"]+)"''')
 OG_TAG = re.compile(r'''<meta\s+property="og:([^"]+)"''')
@@ -96,6 +97,40 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
         for frag in FRAGMENT.findall(text):
             if frag not in ids:
                 err(f"{page.name}: anchor #{frag} has no matching id on the page")
+
+    # --- 1b. absolute same-domain links must resolve to real files --------------
+    # Pages link the canonical domain outright
+    # (e.g. https://news.wearedogs.net/thanks.html), and those bypass the
+    # REL_REF scan in section 1 — verify them here instead. External links
+    # are left alone: the checker never phones home.
+    try:
+        _cname = (landing / "CNAME").read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError):
+        _cname = ""  # section 3 reports the read problem; don't double-report
+    if _cname:
+        _prefix = f"https://{_cname}/"
+        for page in html_files:
+            text = page_text(page)
+            if text is None:
+                continue
+            for m in ABS_URL.finditer(text):
+                url = m.group(1)
+                if url == _prefix.rstrip("/"):
+                    rel = ""
+                elif url.startswith(_prefix):
+                    rel = url[len(_prefix):]
+                else:
+                    continue  # external link, not ours to verify
+                rel = rel.split("#", 1)[0].split("?", 1)[0] or "index.html"
+                target = (landing / rel).resolve()
+                try:
+                    target.relative_to(landing)
+                except ValueError:
+                    err(f"{page.name}: internal link {url} escapes landing/")
+                    continue
+                if not target.exists():
+                    err(f"{page.name}: internal link {url} "
+                        f"has no matching file in landing/")
 
     # --- 2. SEO basics on every page --------------------------------------------
     for page in html_files:

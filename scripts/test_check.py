@@ -258,6 +258,61 @@ class MissingFileTests(FixtureSite):
         self.assertEqual(errors, ["no HTML files found under landing/"], errors)
 
 
+class AbsoluteLinkTests(FixtureSite):
+    """Absolute same-domain links (https://news.wearedogs.net/...) must
+    resolve to real files, just like ./-relative ones. External links are
+    never checked (the checker makes no network requests)."""
+
+    def link(self, url):
+        self.write("index.html", BASE_HTML.replace(
+            "</body>", f'<a href="{url}">x</a>\n</body>'))
+
+    def test_absolute_link_to_missing_file_errors(self):
+        self.link("https://news.wearedogs.net/ghost.html")
+        errors, _ = self.checks()
+        self.assertTrue(any("ghost.html" in e and "no matching file" in e
+                            for e in errors), errors)
+
+    def test_absolute_link_to_real_file_passes(self):
+        self.link("https://news.wearedogs.net/index.html")
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_absolute_bare_host_resolves_to_index(self):
+        self.link("https://news.wearedogs.net")
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_absolute_link_strips_query_and_fragment(self):
+        self.link("https://news.wearedogs.net/index.html?utm=x#top")
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_absolute_link_escaping_landing_errors(self):
+        self.link("https://news.wearedogs.net/../secret.html")
+        errors, _ = self.checks()
+        self.assertTrue(any("escapes landing/" in e for e in errors), errors)
+
+    def test_external_links_are_not_checked(self):
+        self.link("https://example.com/ghost.html")
+        self.write("index.html", (self.landing / "index.html")
+                   .read_text(encoding="utf-8").replace(
+                       "</body>", '<a href="https://wearedogs.net/">org</a>\n</body>'))
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_absolute_links_not_checked_when_cname_missing(self):
+        (self.landing / "CNAME").unlink()
+        self.link("https://news.wearedogs.net/ghost.html")
+        errors, _ = self.checks()
+        # only the CNAME problem is reported; no crash, no link check
+        self.assertEqual(errors, ["CNAME is missing"], errors)
+
+
 class RealTreeTest(unittest.TestCase):
     """The actual repo tree the CI ships must pass clean."""
 
