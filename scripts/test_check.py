@@ -26,7 +26,9 @@ BASE_HTML = """<!doctype html>
 <link rel="canonical" href="https://news.wearedogs.net/">
 <meta property="og:title" content="DOGS NEWS">
 <meta property="og:description" content="Reader-first news by DOGS.">
+<meta property="og:url" content="https://news.wearedogs.net/">
 <meta property="og:image" content="https://news.wearedogs.net/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -356,6 +358,170 @@ class AbsoluteLinkTests(FixtureSite):
         self.assertTrue(any("escapes landing/" in e for e in errors), errors)
 
 
+class SocialCardTests(FixtureSite):
+    """Open Graph + Twitter Card completeness (section 10): every page must
+    ship a usable social preview — non-empty og:title/description, an
+    absolute og:image, an og:url matching the page's canonical URL, and a
+    twitter:card with an image when the card type needs one."""
+
+    def drop(self, tag):
+        self.write("index.html", BASE_HTML.replace(
+            f'<meta property="og:{tag}"', "<!-- gone -->"))
+        return self.checks()
+
+    def test_missing_og_title_errors(self):
+        errors, _ = self.drop("title")
+        self.assertTrue(any("missing og:title" in e for e in errors), errors)
+
+    def test_empty_og_description_errors(self):
+        self.write("index.html", BASE_HTML.replace(
+            'og:description" content="Reader-first news by DOGS."',
+            'og:description" content="  "'))
+        errors, _ = self.checks()
+        self.assertTrue(any("og:description" in e and "empty content" in e
+                            for e in errors), errors)
+
+    def test_missing_og_image_errors(self):
+        errors, _ = self.drop("image")
+        self.assertTrue(any("missing og:image" in e for e in errors), errors)
+
+    def test_relative_og_image_errors(self):
+        self.write("index.html", BASE_HTML.replace(
+            "https://news.wearedogs.net/og.png", "./og.png"))
+        errors, _ = self.checks()
+        self.assertTrue(any("og:image" in e and "relative" in e
+                            for e in errors), errors)
+
+    def test_missing_og_url_errors(self):
+        errors, _ = self.drop("url")
+        self.assertTrue(any("missing og:url" in e for e in errors), errors)
+
+    def test_og_url_mismatch_errors(self):
+        self.write("index.html", BASE_HTML.replace(
+            'og:url" content="https://news.wearedogs.net/"',
+            'og:url" content="https://news.wearedogs.net/privacy.html"'))
+        errors, _ = self.checks()
+        self.assertTrue(any("og:url" in e and "does not match" in e
+                            and "canonical" in e for e in errors), errors)
+
+    def test_og_url_with_trailing_slash_variants_pass(self):
+        # canonical https://host/ and og:url https://host/ agree; the
+        # normalization matches section 9's (trailing slash, query,
+        # fragment all strip to the same page path)
+        self.write("index.html", BASE_HTML.replace(
+            'og:url" content="https://news.wearedogs.net/"',
+            'og:url" content="https://news.wearedogs.net/index.html?utm=x"'))
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_og_url_skipped_when_canonical_relative(self):
+        # a relative canonical is section 9's (soft) problem; the og:url
+        # comparison must not pile on with a mismatch error
+        self.write("index.html", BASE_HTML.replace(
+            '<link rel="canonical" href="https://news.wearedogs.net/">',
+            '<link rel="canonical" href="./index.html">'))
+        errors, warnings = self.checks()
+        self.assertFalse(any("og:url" in e and "does not match" in e
+                             for e in errors), errors)
+        self.assertTrue(any("canonical" in w and "relative" in w
+                            for w in warnings), warnings)
+
+    def test_missing_twitter_card_errors(self):
+        self.write("index.html", BASE_HTML.replace(
+            '<meta name="twitter:card" content="summary_large_image">', ""))
+        errors, _ = self.checks()
+        self.assertTrue(any("missing twitter:card" in e for e in errors),
+                        errors)
+
+    def test_large_twitter_card_without_image_errors(self):
+        self.write("index.html", BASE_HTML.replace(
+            '<meta property="og:image" '
+            'content="https://news.wearedogs.net/og.png">', ""))
+        errors, _ = self.checks()
+        self.assertTrue(any("summary_large_image" in e and "without an image"
+                            in e for e in errors), errors)
+
+    def test_twitter_image_satisfies_large_card(self):
+        self.write("index.html", BASE_HTML.replace(
+            "https://news.wearedogs.net/og.png",
+            "https://example.com/og.png").replace(
+            '<meta name="twitter:card" content="summary_large_image">',
+            '<meta name="twitter:card" content="summary_large_image">\n'
+            '<meta name="twitter:image" '
+            'content="https://example.com/twit.png">'))
+        errors, warnings = self.checks()
+        self.assertFalse(any("without an image" in e for e in errors), errors)
+
+    def test_attribute_order_does_not_matter(self):
+        self.write("index.html", BASE_HTML.replace(
+            '<meta property="og:url" content="https://news.wearedogs.net/">',
+            '<meta content="https://news.wearedogs.net/" property="og:url">'))
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+
+class FeedItemTests(FixtureSite):
+    """Feed <item> entries must each be self-sufficient: title, link and
+    description present, links on the canonical domain, pubDates RFC 822."""
+
+    ITEM = """
+    <item>
+      <title>News that bites, issue one</title>
+      <link>https://news.wearedogs.net/issues/one.html</link>
+      <description>The launch edition.</description>
+      <pubDate>Wed, 09 Sep 2026 04:00:00 -0500</pubDate>
+    </item>
+  </channel>"""
+
+    def add_item(self, item_xml):
+        self.write("feed.xml", FEED.replace(
+            "  </channel>", item_xml).format(
+            date="Wed, 09 Sep 2026 04:00:00 -0500"))
+
+    def test_valid_item_passes(self):
+        self.add_item(self.ITEM)
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_item_missing_link_errors(self):
+        self.add_item(self.ITEM.replace(
+            '      <link>https://news.wearedogs.net/issues/one.html</link>\n',
+            ""))
+        errors, _ = self.checks()
+        self.assertTrue(any("feed.xml" in e and "<item> is missing <link>" in e
+                            for e in errors), errors)
+
+    def test_item_off_domain_link_errors(self):
+        self.add_item(self.ITEM.replace(
+            "https://news.wearedogs.net/issues/one.html",
+            "https://example.com/issues/one.html"))
+        errors, _ = self.checks()
+        self.assertTrue(any("feed.xml" in e and "<item> link" in e
+                            and "canonical domain" in e for e in errors),
+                        errors)
+
+    def test_item_bad_pubdate_warns(self):
+        self.add_item(self.ITEM.replace(
+            "Wed, 09 Sep 2026 04:00:00 -0500", "September 9th 2026"))
+        errors, warnings = self.checks()
+        self.assertEqual(errors, [], errors)
+        self.assertTrue(any("feed.xml" in w and "<pubDate>" in w
+                            and "RFC 822" in w for w in warnings), warnings)
+
+
+class RealTreeTest(unittest.TestCase):
+    """The actual repo tree the CI ships must pass clean."""
+
+    def test_real_tree_has_no_errors_or_warnings(self):
+        root = Path(__file__).resolve().parents[1]
+        errors, warnings = check.run_checks(root)
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+
 class CanonicalLinkTests(FixtureSite):
     """Canonical <link> tags must be absolute, on the canonical domain, and
     self-referential. An off-domain or wrong-page canonical quietly hands
@@ -413,16 +579,6 @@ class CanonicalLinkTests(FixtureSite):
         errors, _ = self.canon("https://example.com/")
         # only the CNAME problem is reported; no crash, no canonical check
         self.assertEqual(errors, ["CNAME is missing"], errors)
-
-
-class RealTreeTest(unittest.TestCase):
-    """The actual repo tree the CI ships must pass clean."""
-
-    def test_real_tree_has_no_errors_or_warnings(self):
-        root = Path(__file__).resolve().parents[1]
-        errors, warnings = check.run_checks(root)
-        self.assertEqual(errors, [], errors)
-        self.assertEqual(warnings, [], warnings)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,12 @@ The canonical <link> itself is also validated (section 9): it must be
 absolute, on the canonical domain, and self-referential — an off-domain
 or wrong-page canonical quietly hands search indexing elsewhere.
 
+Section 10 validates social-card completeness: og:title, og:description,
+and an absolute og:image on every page, og:url matching the page's
+canonical URL, and a twitter:card with an image when it promises a large
+preview. Feed <item> entries are validated alongside the channel
+(section 6): title/link/description, on-domain links, RFC 822 pubDates.
+
 Errors fail the run; warnings are informational.
 Stdlib only — no dependencies to install.
 
@@ -41,6 +47,29 @@ CANONICAL_LINK = re.compile(
 CANONICAL_LINK_ALT = re.compile(
     r'''<link[^>]*?href=["']([^"']*)["'][^>]*?rel=["']canonical["']''',
     re.IGNORECASE)
+
+
+def meta_property_values(text: str, attr: str, prefix: str) -> dict:
+    """Map <meta> *attr*="*prefix*:prop" names to their content= values.
+
+    e.g. meta_property_values(html, "property", "og") -> {"title": "...",
+    "image": "..."}. Works regardless of attribute order. A name that
+    appears with no content= attribute maps to None; the first
+    occurrence of a repeated name wins.
+    """
+    values: dict[str, str | None] = {}
+    tag_re = re.compile(
+        r'''<meta\s+[^>]*?''' + re.escape(attr) + r'''="'''
+        + re.escape(prefix) + r''':([a-z_:]+)"[^>]*?>''',
+        re.IGNORECASE)
+    content_re = re.compile(r'''content="([^"]*)"''', re.IGNORECASE)
+    for m in tag_re.finditer(text):
+        prop = m.group(1).lower()
+        if prop in values:
+            continue
+        c = content_re.search(m.group(0))
+        values[prop] = c.group(1) if c else None
+    return values
 
 
 def run_checks(root: Path) -> tuple[list[str], list[str]]:
@@ -165,10 +194,8 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
             err(f"{name}: missing meta description")
         if 'rel="canonical"' not in text:
             err(f"{name}: missing canonical link")
-        og = set(OG_TAG.findall(text))
-        for tag in ("title", "description", "image"):
-            if tag not in og:
-                warn(f"{name}: missing og:{tag}")
+        # og:* completeness (title/description/image) is enforced as
+        # errors in section 10; nothing double-reports here.
 
     # --- 3. sitemap entries map to real files on the canonical domain -----------
     cname_text = read_text(landing / "CNAME")
@@ -304,6 +331,27 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
                     warn(f"feed.xml: <lastBuildDate> {build!r} is over 30 days old")
                 else:
                     feed_built = built
+            # --- 6b. every <item> needs its own title/link/description -----
+            # A channel-only feed is valid RSS (stories arrive at launch),
+            # but once items exist each one must be self-sufficient: an
+            # item with no link points readers nowhere, and an off-domain
+            # link quietly syndicates someone else's content.
+            for item in channel.findall("item"):
+                item_link = item.findtext("link", default="").strip()
+                for field in ("title", "link", "description"):
+                    if item.findtext(field, default="").strip() == "":
+                        err(f"feed.xml: <item> is missing <{field}>")
+                if (item_link and canon_host is not None
+                        and not item_link.startswith(f"https://{canon_host}/")):
+                    err(f"feed.xml: <item> link {item_link!r} is not on the "
+                        f"canonical domain {canon_host}")
+                pub_date = item.findtext("pubDate", default="").strip()
+                if pub_date:
+                    try:
+                        datetime.strptime(pub_date, "%a, %d %b %Y %H:%M:%S %z")
+                    except ValueError:
+                        warn(f"feed.xml: <item> <pubDate> is not RFC 822: "
+                             f"{pub_date!r}")
 
     # --- 7. footer "last updated" line must match feed.xml --------------------
     # The landing page shows a visible feed freshness line; its date must be
@@ -378,6 +426,79 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
             if canon_path != expected:
                 err(f"{page.name}: canonical {href!r} is not self-referential "
                     f"(expected https://{canon_host}/{'' if expected == 'index.html' else expected})")
+
+    # --- 10. social-card completeness (Open Graph + Twitter Card) ----------
+    # Section 2 used to warn that og:title/description/image exist; here the
+    # core social card is enforced as errors. A share with no title or a
+    # relative og:image ships a broken preview to every platform — that's
+    # not cosmetic, it's the page's public face. og:url must also name the
+    # page's own canonical URL (normalized the same way as section 9's
+    # self-referential check) so shares aggregate on the right link instead
+    # of a duplicate.
+    def normalize_canonical_url(href: str) -> str | None:
+        """Return the landing-relative path a canonical-domain URL names.
+
+        None when the URL is relative or off-domain (the relative and
+        off-domain cases are already reported by section 9).
+        """
+        href = href.strip()
+        if not href.lower().startswith(("http://", "https://")):
+            return None
+        host = href.split("://", 1)[1].split("/", 1)[0]
+        if canon_host is None or host.lower() != canon_host.lower():
+            return None
+        parts = href.split("://", 1)[1].split("/", 1)
+        path = parts[1] if len(parts) > 1 else ""
+        path = path.split("#", 1)[0].split("?", 1)[0].lstrip("./")
+        return path or "index.html"
+
+    for page in html_files:
+        text = page_text(page)
+        if text is None:
+            continue
+        name = page.name
+        og = meta_property_values(text, "property", "og")
+        tw = meta_property_values(text, "name", "twitter")
+        for tag in ("title", "description"):
+            if tag not in og:
+                err(f"{name}: missing og:{tag}")
+            elif not (og[tag] or "").strip():
+                err(f"{name}: og:{tag} has empty content")
+        if "image" not in og:
+            err(f"{name}: missing og:image")
+        else:
+            img = (og["image"] or "").strip()
+            if not img:
+                err(f"{name}: og:image has empty content")
+            elif not img.lower().startswith(("http://", "https://")):
+                err(f"{name}: og:image {img!r} is relative; social scrapers "
+                    "need an absolute URL")
+            # section 8 already verifies an absolute same-domain og:image
+            # resolves to a real file in landing/
+        if "url" not in og or not (og["url"] or "").strip():
+            err(f"{name}: missing og:url")
+        else:
+            og_url = og["url"].strip()
+            cm = (CANONICAL_LINK.search(text)
+                  or CANONICAL_LINK_ALT.search(text))
+            if cm is not None:
+                canon_norm = normalize_canonical_url(cm.group(1))
+                og_norm = normalize_canonical_url(og_url)
+                # only compare when both are absolute and on-domain; the
+                # other cases are section 9's job
+                if (canon_norm is not None and og_norm is not None
+                        and og_norm != canon_norm):
+                    err(f"{name}: og:url {og_url!r} does not match the page's "
+                        f"canonical URL {cm.group(1).strip()!r}")
+        if "card" not in tw or not (tw["card"] or "").strip():
+            err(f"{name}: missing twitter:card")
+        elif tw["card"].strip() == "summary_large_image":
+            has_image = (("image" in tw and (tw["image"] or "").strip())
+                         or ("image" in og and (og["image"] or "").strip()))
+            if not has_image:
+                err(f"{name}: twitter:card is summary_large_image but no "
+                    "twitter:image/og:image is set; the large preview will "
+                    "render without an image")
 
     return errors, warnings
 
