@@ -115,8 +115,15 @@ def _feed_with_item(title: str, description: str) -> str:
     return real_feed().replace(
         "</channel>",
         f"  <item><title>{title}</title>"
-        f"<link>https://news.wearedogs.net/x</link>"
+        f"<link>https://news.wearedogs.net/</link>"
         f"<description>{description}</description></item>\n  </channel>")
+
+
+def _feed_with_item_link(link: str) -> str:
+    return real_feed().replace(
+        "</channel>",
+        f"  <item><title>T</title><link>{link}</link>"
+        f"<description>D</description></item>\n  </channel>")
 
 
 def t_script_entity_in_description_fails():
@@ -150,6 +157,38 @@ def t_benign_entities_pass():
     assert code == 0, f"benign entities should pass, got:\n{out}"
 
 
+# --- §7 local link integrity ---------------------------------------------------
+
+def t_good_relative_item_link_passes():
+    code, out = run_check(_feed_with_item_link("./privacy.html"))
+    assert code == 0, f"relative link to existing file should pass:\n{out}"
+
+
+def t_broken_relative_item_link_fails():
+    code, out = run_check(_feed_with_item_link("./nope.html"))
+    assert code != 0, "relative link to missing file should fail"
+    assert "has no matching file in landing/" in out, out
+
+
+def t_external_item_link_skipped_offline():
+    code, out = run_check(_feed_with_item_link("https://example.com/story"))
+    assert "external — not checked (offline)" in out, out
+    assert code != 0, "off-domain item link still fails §6 domain rule"
+
+
+def t_missing_anchor_in_item_link_fails():
+    code, out = run_check(_feed_with_item_link(
+        "https://news.wearedogs.net/privacy.html#nope"))
+    assert code != 0, "link fragment with no matching id should fail"
+    assert "has no matching id in privacy.html" in out, out
+
+
+def t_good_anchor_in_item_link_passes():
+    code, out = run_check(_feed_with_item_link(
+        "https://news.wearedogs.net/#roadmap"))
+    assert code == 0, f"link to existing id should pass:\n{out}"
+
+
 check("clean feed passes", t_clean_feed_passes)
 check("off-domain channel link fails", t_off_domain_channel_link_fails)
 check("wrong atom:self link fails", t_wrong_atom_self_link_fails)
@@ -164,8 +203,13 @@ check("entity-encoded onerror in title fails",
 check("javascript: URL in description fails",
       t_javascript_scheme_in_description_fails)
 check("benign escaped entities pass", t_benign_entities_pass)
+check("good relative item link passes", t_good_relative_item_link_passes)
+check("broken relative item link fails", t_broken_relative_item_link_fails)
+check("external item link skipped (offline)", t_external_item_link_skipped_offline)
+check("missing anchor in item link fails", t_missing_anchor_in_item_link_fails)
+check("good anchor in item link passes", t_good_anchor_in_item_link_passes)
 
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print("\nall 11 tests passed")
+print("\nall 16 tests passed")
