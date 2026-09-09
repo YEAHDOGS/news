@@ -120,6 +120,25 @@ for asset in LANDING.iterdir():
         if asset.name not in referenced:
             warn(f"unreferenced asset: landing/{asset.name}")
 
+# --- 6. RSS feed skeleton stays valid XML -------------------------------------
+feed = LANDING / "feed.xml"
+try:
+    feed_root = ET.parse(feed).getroot()
+except (ET.ParseError, OSError) as exc:
+    err(f"feed.xml does not parse: {exc}")
+    feed_root = None
+if feed_root is not None:
+    if feed_root.tag != "rss":
+        err(f"feed.xml: root element is <{feed_root.tag}>, expected <rss>")
+    channel = feed_root.find("channel")
+    if channel is None:
+        err("feed.xml: missing <channel>")
+    else:
+        for tag in ("title", "link", "description"):
+            child = channel.find(tag)
+            if child is None or not (child.text or "").strip():
+                err(f"feed.xml: <channel> missing non-empty <{tag}>")
+
 # --- report -------------------------------------------------------------------
 for w in warnings:
     print(f"warning: {w}")
