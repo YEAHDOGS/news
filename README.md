@@ -82,6 +82,19 @@ URL must map to a real file under `landing/` when it is absolute on the
 canonical domain or relative (`https://news.wearedogs.net/og.png` → `og.png`).
 Other domains are skipped offline, same as §7.
 
+### Rule §8b (og:image dimension integrity)
+
+Rule §8 only verifies that `og:image` *resolves* — it never checked the
+`og:image:width` / `og:image:height` numbers against the real file, and
+social scrapers reserve card layout from the declared numbers. Rule §8b
+closes that gap, still fully offline (stdlib-only PNG/GIF/JPEG dimension
+readers, external URLs and unsupported formats are skipped):
+
+- declared `og:image:width`/`height` must equal the actual file dimensions —
+  **error** on mismatch or non-numeric values,
+- an `og:image` declaring only one of the two, or neither — **warning**
+  (declare both; scrapers use them for card layout).
+
 ### Rule §9 (canonical link integrity)
 
 Rule §2 only checked that a canonical tag *exists* — it never verified the
