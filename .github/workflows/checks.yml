@@ -6,11 +6,13 @@ on:
     paths:
       - 'landing/**'
       - 'scripts/**'
+      - 'tests/**'
       - '.github/workflows/checks.yml'
   pull_request:
     paths:
       - 'landing/**'
       - 'scripts/**'
+      - 'tests/**'
       - '.github/workflows/checks.yml'
   workflow_dispatch:
 
@@ -24,3 +26,5 @@ jobs:
           python-version: '3.x'
       - name: Run site sanity checks
         run: python3 scripts/check.py
+      - name: Run checker regression tests
+        run: python3 tests/test_check.py
