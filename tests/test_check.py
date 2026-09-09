@@ -19,7 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECK = ROOT / "scripts" / "check.py"
 
 
-def run_check(feed_text: str | None = None, page_edits: dict | None = None):
+def run_check(feed_text: str | None = None, page_edits: dict | None = None,
+              file_writes: dict | None = None):
     with tempfile.TemporaryDirectory(prefix="news-check-test-") as tmp:
         tmp = Path(tmp)
         shutil.copytree(ROOT / "scripts", tmp / "scripts")
@@ -32,6 +33,9 @@ def run_check(feed_text: str | None = None, page_edits: dict | None = None):
                 text = page.read_text(encoding="utf-8")
                 assert old in text, f"test fixture drift: {old!r} not in {name}"
                 page.write_text(text.replace(old, new, 1), encoding="utf-8")
+        if file_writes:
+            for rel, content in file_writes.items():
+                (tmp / "landing" / rel).write_text(content, encoding="utf-8")
         proc = subprocess.run(
             [sys.executable, str(tmp / "scripts" / "check.py")],
             capture_output=True, text=True, timeout=60,
@@ -421,7 +425,45 @@ check("half-declared og:image dimensions warn",
 check("non-numeric og:image dimension fails",
       t_og_image_dim_nonnumeric_fails)
 
+# --- §11a XML bomb guards (DOCTYPE ban + size cap) -----------------------------
+
+
+def t_feed_doctype_rejected():
+    feed = real_feed().replace(
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<!DOCTYPE rss [<!ENTITY x "expanded">]>')
+    code, out = run_check(feed)
+    assert code != 0, "DOCTYPE in feed.xml should fail"
+    assert "DOCTYPE declaration" in out and "XML bomb" in out, out
+
+
+def t_feed_over_size_cap_rejected():
+    padding = "x" * (600 * 1024)  # 600 KiB > 512 KiB cap
+    feed = real_feed().replace(
+        "Reader-first reporting with no middlemen and no noise.",
+        "Reader-first reporting." + padding)
+    code, out = run_check(feed)
+    assert code != 0, "oversized feed.xml should fail"
+    assert "over the" in out and "cap" in out, out
+
+
+def t_sitemap_doctype_rejected():
+    bad = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+           '<!DOCTYPE urlset [<!ENTITY x "expanded">]>\n'
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+           '<url><loc>https://news.wearedogs.net/</loc></url>\n'
+           "</urlset>\n")
+    code, out = run_check(file_writes={"sitemap.xml": bad})
+    assert code != 0, "DOCTYPE in sitemap.xml should fail"
+    assert "sitemap.xml" in out and "DOCTYPE declaration" in out, out
+
+
+check("DOCTYPE in feed.xml is rejected", t_feed_doctype_rejected)
+check("oversized feed.xml is rejected", t_feed_over_size_cap_rejected)
+check("DOCTYPE in sitemap.xml is rejected", t_sitemap_doctype_rejected)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print("\nall 37 tests passed")
+print(f"\nall {37 + 3} tests passed")

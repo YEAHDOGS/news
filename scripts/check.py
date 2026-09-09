@@ -81,14 +81,48 @@ for page in html_files:
         err(f"{page.name}: RSS autodiscovery link does not point at ./feed.xml")
 
 # --- 3. sitemap entries map to real files on the canonical domain -----------
+MAX_FEED_BYTES = 512 * 1024  # aggregators choke on bigger files; cap it
+
+
+def _safe_xml_root(path: Path, what: str):
+    """Parse an XML file with bomb guards: size cap + no DOCTYPE.
+
+    ElementTree never resolves *external* entities, but internal entity
+    expansion ("billion laughs") still eats memory — so DTD declarations
+    are banned outright. Returns the root element, or None after
+    recording an error.
+    """
+    try:
+        size = path.stat().st_size
+    except OSError as exc:
+        err(f"{what} is unreadable: {exc}")
+        return None
+    if size > MAX_FEED_BYTES:
+        err(f"{what} is {size} bytes — over the {MAX_FEED_BYTES}-byte cap; "
+            "trim the feed")
+        return None
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        err(f"{what} is not valid UTF-8 text: {exc}")
+        return None
+    if "<!doctype" in text.lower():
+        err(f"{what} contains a DOCTYPE declaration — DTDs/entity "
+            "declarations are not allowed (XML bomb risk)")
+        return None
+    try:
+        return ET.fromstring(text)
+    except ET.ParseError as exc:
+        err(f"{what} does not parse: {exc}")
+        return None
+
+
 cname = (LANDING / "CNAME").read_text(encoding="utf-8").strip()
 sitemap = LANDING / "sitemap.xml"
-try:
-    locs = [e.text.strip() for e in ET.parse(sitemap).getroot().iter()
-            if e.tag.endswith("loc")]
-except ET.ParseError as exc:
-    err(f"sitemap.xml does not parse: {exc}")
-    locs = []
+sitemap_root = _safe_xml_root(sitemap, "sitemap.xml")
+locs = ([e.text.strip() for e in sitemap_root.iter()
+         if e.tag.endswith("loc") and e.text and e.text.strip()]
+        if sitemap_root is not None else [])
 prefix = f"https://{cname}/"
 for loc in locs:
     if not loc.startswith(prefix):
@@ -138,11 +172,7 @@ from email.utils import parsedate_to_datetime
 feed_prefix = f"https://{cname}/"
 
 feed = LANDING / "feed.xml"
-try:
-    feed_root = ET.parse(feed).getroot()
-except (ET.ParseError, OSError) as exc:
-    err(f"feed.xml does not parse: {exc}")
-    feed_root = None
+feed_root = _safe_xml_root(feed, "feed.xml")
 if feed_root is not None:
     if feed_root.tag != "rss":
         err(f"feed.xml: root element is <{feed_root.tag}>, expected <rss>")
