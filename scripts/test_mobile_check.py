@@ -136,6 +136,18 @@ class FixtureSite(unittest.TestCase):
         errors, warnings = self.checks()
         self.assertTrue(any("header.site" in e for e in errors), errors)
 
+    def test_fixed_header_adjusted_via_descendant(self):
+        # The fixed bar itself is untouched, but .nav inside it is restyled
+        # at small widths — that counts as a mobile adjustment.
+        self.write("index.html", PAGE_HTML.replace(
+            "</body>",
+            '<header class="site"><div class="nav"><a href="./">x</a></div></header>\n</body>'))
+        css = GOOD_CSS.replace(
+            "@media (max-width: 640px) {\n  header.site { padding: 0; }\n}",
+            "@media (max-width: 640px) {\n  .nav { padding: 0 1rem; }\n}")
+        self.write("styles.css", css)
+        self.assertClean()
+
     def test_nowrap_with_fixed_width_warns(self):
         self.write("styles.css", GOOD_CSS +
                    ".label { width: 320px; white-space: nowrap; }")

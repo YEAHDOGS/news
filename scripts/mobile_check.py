@@ -114,6 +114,42 @@ def css_tokens(css: str) -> set[str]:
 
 OFFSCREEN_OFFSET = re.compile(r"(?:left|right|top|bottom)\s*:\s*(-?\d+(?:\.\d+)?)\s*px", re.IGNORECASE)
 
+VOID_ELEMENTS = frozenset(
+    "area base br col embed hr img input link meta param source track wbr".split()
+)
+TAG = re.compile(r"<(/?)([a-zA-Z][\w-]*)(\s[^<>]*)?/?>", re.DOTALL)
+CLASS_ATTR = re.compile(r'class="([^"]*)"')
+
+
+def subtree_classes(html: str, cls: str) -> set[str]:
+    """All class names inside elements carrying class *cls* (inclusive).
+
+    Lets the mobile check treat a fixed container (e.g. ``header.site``) as
+    adjusted when a *descendant* (e.g. ``.nav``) is restyled at small widths.
+    """
+    found: set[str] = set()
+    for m in re.finditer(r"<([a-zA-Z][\w-]*)(\s[^<>]*)>", html):
+        attrs = m.group(2) or ""
+        cm = CLASS_ATTR.search(attrs)
+        if not (cm and cls in cm.group(1).split()):
+            continue
+        found.update(cm.group(1).split())
+        depth, i = 1, m.end()
+        for t in TAG.finditer(html, i):
+            closing, name, tattrs, raw = t.group(1), t.group(2).lower(), t.group(3) or "", t.group(0)
+            if raw.endswith("/>") or name in VOID_ELEMENTS:
+                pass
+            elif closing:
+                depth -= 1
+            else:
+                depth += 1
+            tc = CLASS_ATTR.search(tattrs)
+            if tc:
+                found.update(tc.group(1).split())
+            if depth == 0:
+                break
+    return found
+
 
 def fixed_selectors(css: str) -> list[str]:
     """Selectors of top-level rules that use position: fixed.
@@ -205,8 +241,13 @@ def run_mobile_checks(root: Path) -> tuple[list[str], list[str]]:
     ]
     small_css = "\n".join(small_bodies)
     small_tokens = css_tokens(small_css)
+    page_htmls = [p.read_text(encoding="utf-8") for p in pages]
     for selector in fixed_selectors(css):
-        if not (selector_tokens(selector) & small_tokens):
+        names = set(selector_tokens(selector))
+        for token in selector_tokens(selector):
+            for html in page_htmls:
+                names |= subtree_classes(html, token)
+        if not (names & small_tokens):
             errors.append(
                 f"styles.css: fixed-position `{selector}` has no small-screen @media adjustment — "
                 "risk of overlap/crowding at 390px"
