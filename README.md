@@ -73,6 +73,15 @@ Links to other domains are **never fetched** — the checker is fully
 offline by design (SECURITY.md). They are reported as
 `external — not checked (offline)` and skipped.
 
+### Rule §8 (social-preview URL integrity)
+
+Rule §5 catches *unreferenced* assets, but it never verified that the URLs
+social previews actually fetch resolve to real files. Rule §8 closes that
+gap: every `og:image`, `og:video`, `og:audio`, and `og:url` meta `content`
+URL must map to a real file under `landing/` when it is absolute on the
+canonical domain or relative (`https://news.wearedogs.net/og.png` → `og.png`).
+Other domains are skipped offline, same as §7.
+
 ## Roadmap
 
 From the landing page timeline:
