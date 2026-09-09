@@ -674,6 +674,22 @@ if feed_root is not None and feed_root.tag == "rss":
                 warn(f"feed.xml: item #{i} has no <link> — readers have "
                      "nowhere to go")
 
+# --- 14. feed item byline presence (<author>) ---------------------------------
+# One of this site's stated principles is "clear bylines" — a news story
+# with no named author is a byline defect. RSS carries authorship as
+# <author> ("email address of the author of the item" per the RSS 2.0
+# spec). Missing or empty is a warning, not an error: readers and
+# aggregators want to know who wrote what, but the item is still
+# technically valid without it.
+if feed_root is not None and feed_root.tag == "rss":
+    channel = feed_root.find("channel")
+    if channel is not None:
+        for i, item in enumerate(channel.findall("item"), start=1):
+            author = (item.findtext("author") or "").strip()
+            if not author:
+                warn(f"feed.xml: item #{i} has no <author> — every story "
+                     "should carry a byline")
+
 # --- report -------------------------------------------------------------------
 for w in warnings:
     print(f"warning: {w}")

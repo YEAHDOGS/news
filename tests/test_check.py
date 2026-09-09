@@ -726,7 +726,43 @@ check("title-only item passes", t_item_title_only_passes)
 check("description-only item passes", t_item_description_only_passes)
 check("linkless item warns", t_item_no_link_warns)
 
+# --- §14 feed item byline presence (<author>) ---------------------------------
+
+
+def t_item_no_author_warns():
+    feed = _feed_with_custom_items([
+        "<title>T</title><description>D</description>"
+        '<link>https://news.wearedogs.net/</link>'])
+    code, out = run_check(feed)
+    assert code == 0, f"authorless item should only warn, not fail:\n{out}"
+    assert "has no <author>" in out, out
+
+
+def t_item_empty_author_warns():
+    feed = _feed_with_custom_items([
+        "<title>T</title><description>D</description>"
+        "<author>   </author>"
+        '<link>https://news.wearedogs.net/</link>'])
+    code, out = run_check(feed)
+    assert code == 0, f"empty-author item should only warn:\n{out}"
+    assert "has no <author>" in out, out
+
+
+def t_item_with_author_passes():
+    feed = _feed_with_custom_items([
+        "<title>T</title><description>D</description>"
+        "<author>user@wearedogs.net (the founder)</author>"
+        '<link>https://news.wearedogs.net/</link>'])
+    code, out = run_check(feed)
+    assert code == 0, f"bylined item should pass clean:\n{out}"
+    assert "has no <author>" not in out, out
+
+
+check("item with no author warns", t_item_no_author_warns)
+check("item with empty author warns", t_item_empty_author_warns)
+check("item with author passes clean", t_item_with_author_passes)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print(f"\nall {37 + 3 + 7 + 5 + 5 + 3 + 5} tests passed")
+print(f"\nall {37 + 3 + 7 + 5 + 5 + 3 + 5 + 3} tests passed")

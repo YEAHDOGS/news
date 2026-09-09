@@ -183,6 +183,14 @@ broken, so that is a hard **error**. `<link>` is optional in the spec,
 but a news item with no link is a dead end for readers — missing `<link>`
 is a **warning**, not an error.
 
+### Rule §14 (feed item byline presence)
+
+One of this site's stated principles is *clear bylines*. RSS carries
+authorship as `<author>` ("email address of the author of the item" per
+the RSS 2.0 spec) — an item without one is still technically valid, but
+readers and aggregators want to know who wrote what. Missing or empty
+`<author>` is a **warning**, not an error.
+
 ## Roadmap
 
 From the landing page timeline:
