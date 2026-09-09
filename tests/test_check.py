@@ -463,7 +463,76 @@ check("DOCTYPE in feed.xml is rejected", t_feed_doctype_rejected)
 check("oversized feed.xml is rejected", t_feed_over_size_cap_rejected)
 check("DOCTYPE in sitemap.xml is rejected", t_sitemap_doctype_rejected)
 
+# --- §6b URL scheme policy (http(s) only, dangerous schemes rejected) -------
+
+
+def t_javascript_item_link_fails():
+    code, out = run_check(_feed_with_item_link("javascript:alert(1)"))
+    assert code != 0, "javascript: item link should fail"
+    assert "dangerous URL scheme (javascript:)" in out, out
+
+
+def t_data_item_link_fails():
+    code, out = run_check(_feed_with_item_link(
+        "data:text/html;base64,PGI+"))
+    assert code != 0, "data: item link should fail"
+    assert "dangerous URL scheme (data:)" in out, out
+
+
+def t_mailto_item_link_fails():
+    code, out = run_check(_feed_with_item_link("mailto:news@example.com"))
+    assert code != 0, "mailto: item link should fail"
+    assert "item link mailto:news@example.com is not on" in out, out
+
+
+def t_javascript_channel_link_fails():
+    feed = real_feed().replace(
+        "https://news.wearedogs.net/</link>",
+        "javascript:alert(1)</link>")
+    code, out = run_check(feed)
+    assert code != 0, "javascript: channel link should fail"
+    assert "dangerous URL scheme (javascript:)" in out, out
+
+
+def _feed_with_guid(guid_xml: str) -> str:
+    return real_feed().replace(
+        "</channel>",
+        f"  <item><title>T</title><link>https://news.wearedogs.net/</link>"
+        f"{guid_xml}<description>D</description></item>\n  </channel>")
+
+
+def t_guid_javascript_permalink_fails():
+    feed = _feed_with_guid(
+        '<guid isPermaLink="true">javascript:alert(1)</guid>')
+    code, out = run_check(feed)
+    assert code != 0, "javascript: permalink guid should fail"
+    assert "dangerous URL scheme (javascript:)" in out, out
+
+
+def t_guid_default_is_permalink_fails():
+    # isPermaLink defaults to true per the RSS spec
+    feed = _feed_with_guid("<guid>javascript:alert(1)</guid>")
+    code, out = run_check(feed)
+    assert code != 0, "guid without isPermaLink should be treated as permalink"
+    assert "dangerous URL scheme (javascript:)" in out, out
+
+
+def t_guid_nonpermalink_passes():
+    feed = _feed_with_guid(
+        '<guid isPermaLink="false">episode-123</guid>')
+    code, out = run_check(feed)
+    assert code == 0, f"non-permalink guid should pass:\n{out}"
+
+
+check("javascript: item link is rejected", t_javascript_item_link_fails)
+check("data: item link is rejected", t_data_item_link_fails)
+check("mailto: item link is rejected", t_mailto_item_link_fails)
+check("javascript: channel link is rejected", t_javascript_channel_link_fails)
+check("javascript: permalink guid is rejected", t_guid_javascript_permalink_fails)
+check("guid defaults to isPermaLink=true", t_guid_default_is_permalink_fails)
+check("non-permalink guid passes", t_guid_nonpermalink_passes)
+
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print(f"\nall {37 + 3} tests passed")
+print(f"\nall {37 + 3 + 7} tests passed")

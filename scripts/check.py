@@ -173,6 +173,34 @@ feed_prefix = f"https://{cname}/"
 
 feed = LANDING / "feed.xml"
 feed_root = _safe_xml_root(feed, "feed.xml")
+# feed links must live on the canonical domain — and only via safe
+# schemes. Aggregators render item <link>s as clickable, so anything but
+# http(s) (javascript:, data:, ...) is a live XSS vector.
+SCHEME_RE = re.compile(r"^\s*([a-zA-Z][a-zA-Z0-9+.-]*):")
+DANGEROUS_SCHEMES = {"javascript", "data", "vbscript", "file",
+                     "about", "blob"}
+
+
+def _dangerous_scheme(url: str):
+    """Return the dangerous scheme name if `url` uses one, else None."""
+    m = SCHEME_RE.match(url.strip())
+    if m and m.group(1).lower() in DANGEROUS_SCHEMES:
+        return m.group(1).lower()
+    return None
+
+
+def _check_url_scheme(where: str, url: str) -> None:
+    # `where` reads like "item link" / "<channel><link>" / "item <guid>".
+    bad = _dangerous_scheme(url)
+    if bad:
+        err(f"feed.xml: {where} {url.strip()} uses a dangerous URL "
+            f"scheme ({bad}:) — http(s) only")
+    elif (url.strip() and not url.strip().startswith(feed_prefix)
+            and SCHEME_RE.match(url)):
+        err(f"feed.xml: {where} {url.strip()} is not on "
+            f"{feed_prefix}")
+
+
 if feed_root is not None:
     if feed_root.tag != "rss":
         err(f"feed.xml: root element is <{feed_root.tag}>, expected <rss>")
@@ -186,33 +214,40 @@ if feed_root is not None:
                 err(f"feed.xml: <channel> missing non-empty <{tag}>")
         # feed links must live on the canonical domain
         chan_link = (channel.findtext("link") or "").strip()
-        if chan_link and not chan_link.startswith(feed_prefix):
-            err(f"feed.xml: <channel><link> {chan_link} is not on {feed_prefix}")
+        _check_url_scheme("<channel><link>", chan_link)
         atom_ns = "{http://www.w3.org/2005/Atom}"
         for atom_link in channel.findall(f"{atom_ns}link"):
             if atom_link.get("rel") == "self":
                 href = (atom_link.get("href") or "").strip()
                 if href != feed_prefix + "feed.xml":
-                    err(f"feed.xml: atom:self link should be {feed_prefix}feed.xml")
+                    err("feed.xml: atom:self link should be "
+                        f"{feed_prefix}feed.xml")
         for item in channel.findall("item"):
-            item_link = (item.findtext("link") or "").strip()
             # item links must be absolute-on-canonical or relative (a
             # relative link is local by definition; §7 verifies it resolves)
-            if (item_link and not item_link.startswith(feed_prefix)
-                    and re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", item_link)):
-                err(f"feed.xml: item link {item_link} is not on {feed_prefix}")
+            _check_url_scheme("item link", item.findtext("link") or "")
+            # <guid> defaults to isPermaLink="true" per the RSS spec, so a
+            # permalink guid is a link too — same scheme policy applies
+            guid = item.find("guid")
+            if guid is not None:
+                gtext = (guid.text or "").strip()
+                if (guid.get("isPermaLink", "true").lower() != "false"
+                        and gtext):
+                    _check_url_scheme("item <guid>", gtext)
             pub = (item.findtext("pubDate") or "").strip()
             if pub:
                 try:
                     parsedate_to_datetime(pub)
                 except (ValueError, TypeError):
-                    err(f"feed.xml: item pubDate {pub!r} is not valid RFC 822")
+                    err(f"feed.xml: item pubDate {pub!r} is not valid "
+                        "RFC 822")
         built = (channel.findtext("lastBuildDate") or "").strip()
         if built:
             try:
                 parsedate_to_datetime(built)
             except (ValueError, TypeError):
-                err(f"feed.xml: lastBuildDate {built!r} is not valid RFC 822")
+                err(f"feed.xml: lastBuildDate {built!r} is not valid "
+                    "RFC 822")
 
     # --- 6b. feed titles/descriptions must not smuggle active markup (XSS) -----
     # Aggregators render <title>/<description> as HTML, so entities like
@@ -264,6 +299,8 @@ def _resolve_local(url: str) -> tuple:
     is_local False means the link points at another domain: skip it.
     """
     u = url.strip()
+    if _dangerous_scheme(u):
+        return None, None, False  # dangerous scheme — §6 already errors
     if u.startswith(feed_prefix):
         u = u[len(feed_prefix):]
     elif u.startswith("//") or re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", u):
