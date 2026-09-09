@@ -57,6 +57,22 @@ sitemap/robots.txt drift, feed.xml validation failures (including active
 markup smuggled into titles/descriptions as entities — an XSS guard), and
 missing RSS autodiscovery links before anything ships.
 
+### Canonical domain and rule §7 (feed link integrity)
+
+The canonical domain is read from `landing/CNAME` (currently
+`news.wearedogs.net`) — no domain is hardcoded in the checker. Rule §7
+extends the feed checks: every `<channel><link>` and item `<link>` must
+resolve to a real page in `landing/`:
+
+- absolute same-domain links map to files (`https://news.wearedogs.net/`
+  → `index.html`, `/about/` → `about/index.html`),
+- relative links resolve against `landing/`,
+- `#fragment` links must name an `id` that exists in the target page.
+
+Links to other domains are **never fetched** — the checker is fully
+offline by design (SECURITY.md). They are reported as
+`external — not checked (offline)` and skipped.
+
 ## Roadmap
 
 From the landing page timeline:
