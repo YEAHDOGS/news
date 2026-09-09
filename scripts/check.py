@@ -132,6 +132,10 @@ for asset in LANDING.iterdir():
 # --- 6. RSS feed stays valid XML and on the canonical domain --------------------
 from email.utils import parsedate_to_datetime
 
+# feed_prefix is needed by §6, §7, and §8 — define it unconditionally so a
+# feed.xml parse failure cannot cascade into a NameError later.
+feed_prefix = f"https://{cname}/"
+
 feed = LANDING / "feed.xml"
 try:
     feed_root = ET.parse(feed).getroot()
@@ -150,7 +154,6 @@ if feed_root is not None:
             if child is None or not (child.text or "").strip():
                 err(f"feed.xml: <channel> missing non-empty <{tag}>")
         # feed links must live on the canonical domain
-        feed_prefix = f"https://{cname}/"
         chan_link = (channel.findtext("link") or "").strip()
         if chan_link and not chan_link.startswith(feed_prefix):
             err(f"feed.xml: <channel><link> {chan_link} is not on {feed_prefix}")
@@ -276,6 +279,37 @@ if feed_root is not None and feed_root.tag == "rss":
         _check_feed_link("<channel>", channel.findtext("link") or "")
         for i, item in enumerate(channel.findall("item"), start=1):
             _check_feed_link(f"item #{i}", item.findtext("link") or "")
+
+# --- 8. OG URL tags resolve to local files --------------------------------------
+# Rule §5 only catches *unreferenced* assets; it never verified that
+# og:image/og:url (the URLs social previews actually fetch) point at files
+# that exist. Same offline policy as §7: absolute same-domain and relative
+# URLs must map to a real file under landing/; other domains are skipped.
+OG_URL_PROP = re.compile(
+    r'<meta\s+property="(og:(?:image|video|audio|url))"\s+content="([^"]+)"', re.I)
+
+
+def _check_og_url(page_name: str, prop: str, url: str) -> None:
+    """`prop` arrives as the full property name (e.g. "og:image")."""
+    target, frag, is_local = _resolve_local(url)
+    if not is_local:
+        warn(f"{page_name}: {prop} {url.strip()} is external — "
+             "not checked (offline)")
+        return
+    try:
+        target.relative_to(LANDING)
+    except ValueError:
+        err(f"{page_name}: {prop} {url.strip()} escapes landing/")
+        return
+    if not target.exists():
+        err(f"{page_name}: {prop} {url.strip()} has no matching file "
+            "in landing/")
+
+
+for page in html_files:
+    text = page.read_text(encoding="utf-8")
+    for prop, url in OG_URL_PROP.findall(text):
+        _check_og_url(page.name, prop, url)
 
 # --- report -------------------------------------------------------------------
 for w in warnings:

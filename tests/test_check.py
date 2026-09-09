@@ -189,6 +189,39 @@ def t_good_anchor_in_item_link_passes():
     assert code == 0, f"link to existing id should pass:\n{out}"
 
 
+OG_BROKEN = {"index.html": ("https://news.wearedogs.net/og.png",
+                            "https://news.wearedogs.net/og-missing.png")}
+OG_REL_GOOD = {"index.html": ("https://news.wearedogs.net/og.png",
+                              "./og.png")}
+OG_EXTERNAL = {"index.html": ("https://news.wearedogs.net/og.png",
+                              "https://example.com/og.png")}
+OG_URL_BROKEN = {"privacy.html": ('property="og:url" content="https://news.wearedogs.net/privacy.html"',
+                                  'property="og:url" content="https://news.wearedogs.net/privacy-missing.html"')}
+
+
+def t_broken_og_image_fails():
+    code, out = run_check(page_edits=OG_BROKEN)
+    assert code != 0, "og:image pointing at a missing file should fail"
+    assert "og:image" in out and "no matching file" in out, out
+
+
+def t_relative_og_image_passes():
+    code, out = run_check(page_edits=OG_REL_GOOD)
+    assert code == 0, f"relative og:image to an existing file should pass:\n{out}"
+
+
+def t_external_og_image_skipped_offline():
+    code, out = run_check(page_edits=OG_EXTERNAL)
+    assert code == 0, f"external og:image should not fail:\n{out}"
+    assert "is external — not checked (offline)" in out, out
+
+
+def t_broken_og_url_fails():
+    code, out = run_check(page_edits=OG_URL_BROKEN)
+    assert code != 0, "og:url pointing at a missing page should fail"
+    assert "og:url" in out and "no matching file" in out, out
+
+
 check("clean feed passes", t_clean_feed_passes)
 check("off-domain channel link fails", t_off_domain_channel_link_fails)
 check("wrong atom:self link fails", t_wrong_atom_self_link_fails)
@@ -208,8 +241,12 @@ check("broken relative item link fails", t_broken_relative_item_link_fails)
 check("external item link skipped (offline)", t_external_item_link_skipped_offline)
 check("missing anchor in item link fails", t_missing_anchor_in_item_link_fails)
 check("good anchor in item link passes", t_good_anchor_in_item_link_passes)
+check("broken og:image fails", t_broken_og_image_fails)
+check("relative og:image passes", t_relative_og_image_passes)
+check("external og:image skipped (offline)", t_external_og_image_skipped_offline)
+check("broken og:url fails", t_broken_og_url_fails)
 
 if failures:
     print(f"\n{len(failures)} test(s) failed")
     sys.exit(1)
-print("\nall 16 tests passed")
+print("\nall 20 tests passed")
