@@ -24,7 +24,7 @@ platform is on the roadmap for 2027 — this page is the stake in the ground.
 | `landing/humans.txt` | The humans behind the page |
 | `landing/robots.txt`, `landing/sitemap.xml` | Crawler config |
 | `landing/CNAME` | Custom domain: `news.wearedogs.net` |
-| `scripts/check.py` | Sanity checker: internal links/anchors, SEO + social-card (Open Graph / Twitter Card) completeness, sitemap/robots consistency, feed.xml + item validity |
+| `scripts/check.py` | Sanity checker: internal links/anchors, SEO + social-card (Open Graph / Twitter Card) completeness, image alt text, sitemap/robots consistency, feed.xml + item validity |
 | `.github/workflows/` | `landing-page.yml` (Pages deploy) and `checks.yml` (sanity checks on push/PR) |
 
 ## Run it locally

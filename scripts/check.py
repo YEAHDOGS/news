@@ -17,6 +17,10 @@ canonical URL, and a twitter:card with an image when it promises a large
 preview. Feed <item> entries are validated alongside the channel
 (section 6): title/link/description, on-domain links, RFC 822 pubDates.
 
+Section 11 checks image accessibility: every <img> must carry an alt
+attribute (alt="" is the explicit decorative marker); a missing alt is
+an error, a whitespace-only alt a warning.
+
 Errors fail the run; warnings are informational.
 Stdlib only — no dependencies to install.
 
@@ -48,6 +52,11 @@ CANONICAL_LINK = re.compile(
 CANONICAL_LINK_ALT = re.compile(
     r'''<link[^>]*?href=["']([^"']*)["'][^>]*?rel=["']canonical["']''',
     re.IGNORECASE)
+IMG_TAG = re.compile(r'''<img\b[^>]*>''', re.IGNORECASE)
+IMG_ALT = re.compile(r'''\balt\s*=\s*(?:"([^"]*)"|'([^']*)')''',
+                     re.IGNORECASE)
+IMG_SRC = re.compile(r'''\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)')''',
+                     re.IGNORECASE)
 
 
 def meta_property_values(text: str, attr: str, prefix: str) -> dict:
@@ -541,6 +550,34 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
                 err(f"{name}: twitter:card is summary_large_image but no "
                     "twitter:image/og:image is set; the large preview will "
                     "render without an image")
+
+    # --- 11. every <img> must carry an alt attribute -----------------------
+    # Screen readers announce the src filename when alt is missing, which
+    # is never the right announcement. An explicitly empty alt="" marks a
+    # decorative image and passes; a missing alt fails the run, and a
+    # whitespace-only alt warns (it announces nothing but was never
+    # declared decorative — almost always an accident).
+    for page in html_files:
+        text = page_text(page)
+        if text is None:
+            continue
+        name = page.name
+        for img in IMG_TAG.finditer(text):
+            tag = img.group(0)
+            alt_m = IMG_ALT.search(tag)
+            src_m = IMG_SRC.search(tag)
+            src = ((src_m.group(1) if src_m.group(1) is not None
+                    else src_m.group(2)) if src_m else "?")
+            if alt_m is None:
+                err(f"{name}: <img> is missing alt text (src={src!r}); "
+                    'decorative images should use alt="" explicitly')
+            else:
+                alt = (alt_m.group(1) if alt_m.group(1) is not None
+                       else alt_m.group(2))
+                if alt and not alt.strip():
+                    warn(f"{name}: <img> has a whitespace-only alt attribute "
+                         f"(src={src!r}); use alt=\"\" only if the image is "
+                         "purely decorative")
 
     return errors, warnings
 

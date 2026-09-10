@@ -558,6 +558,56 @@ class FeedItemTests(FixtureSite):
                             and "RFC 822" in w for w in warnings), warnings)
 
 
+class ImageAltTests(FixtureSite):
+    """Image accessibility (section 11): every <img> must carry an alt
+    attribute — screen readers announce the filename when it's missing.
+    alt="" is the explicit decorative marker and passes; a whitespace-only
+    alt warns (it announces nothing but was never declared decorative)."""
+
+    SRC = "https://example.com/photo.png"  # external: no file checks apply
+
+    def img(self, attrs):
+        self.write("index.html", BASE_HTML.replace(
+            "</body>", f'<img {attrs}>\n</body>'))
+        return self.checks()
+
+    def test_descriptive_alt_passes(self):
+        errors, warnings = self.img(f'src="{self.SRC}" alt="A newsroom desk"')
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_explicit_empty_alt_passes(self):
+        errors, warnings = self.img(f'src="{self.SRC}" alt=""')
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_missing_alt_errors(self):
+        errors, _ = self.img(f'src="{self.SRC}"')
+        self.assertTrue(any("missing alt text" in e for e in errors), errors)
+        self.assertTrue(any(self.SRC in e for e in errors), errors)
+
+    def test_whitespace_only_alt_warns(self):
+        errors, warnings = self.img(f'src="{self.SRC}" alt="  "')
+        self.assertEqual(errors, [], errors)
+        self.assertTrue(any("whitespace-only alt" in w for w in warnings),
+                        warnings)
+
+    def test_attribute_order_does_not_matter(self):
+        errors, warnings = self.img(f'alt="A newsroom desk" src="{self.SRC}"')
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_single_quoted_alt_passes(self):
+        errors, warnings = self.img(
+            f"src='{self.SRC}' alt='A newsroom desk'")
+        self.assertEqual(errors, [], errors)
+        self.assertEqual(warnings, [], warnings)
+
+    def test_uppercase_img_tag_checked(self):
+        errors, _ = self.img(f'SRC="{self.SRC}"')
+        self.assertTrue(any("missing alt text" in e for e in errors), errors)
+
+
 class RealTreeTest(unittest.TestCase):
     """The actual repo tree the CI ships must pass clean."""
 
