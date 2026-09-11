@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DOGS NEWS</title>
-  <meta name="description" content="DOGS NEWS is an independent news platform made by DOGS.">
+  <title>DOGS NEWS — An independent news platform</title>
+  <meta name="description" content="DOGS NEWS is an independent news platform by DOGS: reader-first reporting with no middlemen and no noise. Work in progress, estimated 2027.">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#faf9f5">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://news.wearedogs.net/">
   <meta property="og:site_name" content="DOGS NEWS">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="DOGS NEWS">
-  <meta property="og:description" content="DOGS NEWS is an independent news platform made by DOGS.">
+  <meta property="og:title" content="DOGS NEWS — An independent news platform">
+  <meta property="og:description" content="DOGS NEWS is an independent news platform by DOGS: reader-first reporting with no middlemen and no noise. Work in progress, estimated 2027.">
   <meta property="og:url" content="https://news.wearedogs.net/">
   <meta property="og:image" content="https://news.wearedogs.net/og.png">
   <meta property="og:image:width" content="1200">
@@ -23,9 +23,39 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "DOGS",
+        "url": "https://wearedogs.net"
+      },
+      {
+        "@type": "WebSite",
+        "name": "DOGS NEWS",
+        "url": "https://news.wearedogs.net/",
+        "description": "An independent news platform by DOGS."
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {"@type": "Question", "name": "What is DOGS NEWS?", "acceptedAnswer": {"@type": "Answer", "text": "An independent news platform by DOGS. It is a work in progress."}},
+          {"@type": "Question", "name": "When does it launch?", "acceptedAnswer": {"@type": "Answer", "text": "More information is estimated by 2027."}},
+          {"@type": "Question", "name": "Who makes it?", "acceptedAnswer": {"@type": "Answer", "text": "DOGS. https://wearedogs.net"}},
+          {"@type": "Question", "name": "Will it be free?", "acceptedAnswer": {"@type": "Answer", "text": "Not decided yet. The plan is reader-first."}},
+          {"@type": "Question", "name": "How do I follow along?", "acceptedAnswer": {"@type": "Answer", "text": "Watch the public GitHub repository at https://github.com/YEAHDOGS/news."}}
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <a class="skip" href="#content">Skip to content</a>
+  <div class="progress" aria-hidden="true"><span></span></div>
+
   <header class="site">
     <div class="nav">
       <div class="brand">
@@ -36,74 +66,116 @@
         <span class="sep" aria-hidden="true">/</span>
         <a class="project" href="./">News</a>
       </div>
-      <nav aria-label="Primary">
-        <a href="./privacy.html">Privacy</a>
-        <a href="https://github.com/YEAHDOGS/news">GitHub</a>
-      </nav>
+      <div class="mast-meta">
+        <span class="dateline" id="dateline" aria-label="Today's date"></span>
+        <nav aria-label="Primary">
+          <a href="./privacy.html">Privacy</a>
+          <a href="https://github.com/YEAHDOGS/news">GitHub</a>
+        </nav>
+      </div>
     </div>
   </header>
-  <main id="content">
-    <nav class="dots" aria-label="Sections">
-      <a href="#top" class="active"><span>Top</span></a>
-      <a href="#roadmap"><span>Roadmap</span></a>
-      <a href="#building"><span>What we're building</span></a>
-      <a href="#notify"><span>Get notified</span></a>
-    </nav>
 
-    <section class="panel" id="top" aria-label="News">
+  <nav class="rail" aria-label="Sections">
+    <a href="#top" class="active"><b>01</b><span>Front page</span></a>
+    <a href="#plan"><b>02</b><span>The plan</span></a>
+    <a href="#roadmap"><b>03</b><span>Roadmap</span></a>
+    <a href="#faq"><b>04</b><span>FAQ</span></a>
+    <a href="#notify"><b>05</b><span>Notify</span></a>
+  </nav>
+
+  <main id="content">
+    <section class="hero" id="top" aria-label="Front page">
       <div class="wrap">
         <p class="eyebrow">DOGS NEWS &middot; An independent news platform</p>
-        <h1>News that bites.</h1>
-        <p class="lede">Reader-first reporting with no middlemen and no noise.</p>
-        <p class="badge"><span class="pip" aria-hidden="true"></span> Work in progress &mdash; more information estimated by 2027</p>
-        <p><a class="scroll-hint" href="#roadmap">See where we are</a></p>
+        <h1 class="headline" data-split>News that bites.</h1>
+        <p class="lede">Reader-first reporting. No middlemen. No noise.</p>
+        <p class="badge"><span class="pip" aria-hidden="true"></span> Work in progress &middot; more information estimated by 2027</p>
+        <div class="cta-row">
+          <a class="btn" href="#notify">Get notified</a>
+          <a class="btn ghost" href="#plan">See the plan</a>
+        </div>
+      </div>
+      <div class="ticker" aria-hidden="true">
+        <div class="ticker-track">
+          <span>Independent &middot; Reader-first &middot; Signal over noise &middot; No middlemen &middot; Clear bylines &middot; Fast pages &middot; No dark patterns &middot; Answers to readers &middot;&nbsp;</span>
+          <span>Independent &middot; Reader-first &middot; Signal over noise &middot; No middlemen &middot; Clear bylines &middot; Fast pages &middot; No dark patterns &middot; Answers to readers &middot;&nbsp;</span>
+        </div>
       </div>
     </section>
 
-    <section class="panel alt" id="roadmap" aria-labelledby="roadmap-h">
+    <section class="section" id="plan" aria-labelledby="plan-h">
       <div class="wrap">
-        <p class="eyebrow">Roadmap</p>
-        <h2 id="roadmap-h">The road to 2027</h2>
-        <p class="lede" style="margin-bottom:0">DOGS NEWS is on its way to a proper launch.</p>
-        <ol class="timeline">
-          <li class="done"><span class="dot" aria-hidden="true"></span><strong>Repo live</strong><span class="when">2026 &mdash; done</span></li>
-          <li class="now"><span class="dot" aria-hidden="true"></span><strong>Building</strong><span class="when">Now &mdash; in progress</span></li>
-          <li class="future"><span class="dot" aria-hidden="true"></span><strong>More information</strong><span class="when">Estimated 2027</span></li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="panel" id="building" aria-labelledby="building-h">
-      <div class="wrap">
+        <p class="secnum" aria-hidden="true">02</p>
         <p class="eyebrow">The plan</p>
-        <h2 id="building-h">What we're building</h2>
-        
-        <div class="grid">
-          <div class="card">
-            <span class="tick" aria-hidden="true"></span>
+        <h2 id="plan-h" data-reveal>What we are building</h2>
+        <div class="columns">
+          <div class="col lead" data-reveal>
             <h3>Independent</h3>
             <p>No parent company, no sponsors steering coverage. The platform answers to readers.</p>
           </div>
-          <div class="card">
-            <span class="tick" aria-hidden="true"></span>
+          <div class="col" data-reveal>
             <h3>Reader-first</h3>
             <p>Fast pages, clear bylines, no dark patterns between you and the story.</p>
           </div>
-          <div class="card">
-            <span class="tick" aria-hidden="true"></span>
+          <div class="col" data-reveal>
             <h3>Signal over noise</h3>
-            <p>Fewer stories, better sourced. If it isn't worth your time, it doesn't run.</p>
+            <p>Fewer stories, better sourced. If it is not worth your time, it does not run.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="panel dark notify" id="notify" aria-labelledby="notify-h">
+    <section class="section alt" id="roadmap" aria-labelledby="roadmap-h">
       <div class="wrap">
+        <p class="secnum" aria-hidden="true">03</p>
+        <p class="eyebrow">Roadmap</p>
+        <h2 id="roadmap-h" data-reveal>The road to 2027</h2>
+        <ol class="timeline">
+          <li class="done" data-reveal><span class="dot" aria-hidden="true"></span><strong>Repo live</strong><span class="when">2026 &middot; done</span></li>
+          <li class="now" data-reveal><span class="dot" aria-hidden="true"></span><strong>Building</strong><span class="when">Now &middot; in progress</span></li>
+          <li class="future" data-reveal><span class="dot" aria-hidden="true"></span><strong>More information</strong><span class="when">Estimated 2027</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section" id="faq" aria-labelledby="faq-h">
+      <div class="wrap narrow">
+        <p class="secnum" aria-hidden="true">04</p>
+        <p class="eyebrow">FAQ</p>
+        <h2 id="faq-h" data-reveal>Asked, answered</h2>
+        <div class="faqs" data-reveal>
+          <details open>
+            <summary>What is DOGS NEWS?</summary>
+            <p>An independent news platform by DOGS. It is a work in progress.</p>
+          </details>
+          <details>
+            <summary>When does it launch?</summary>
+            <p>More information is estimated by 2027.</p>
+          </details>
+          <details>
+            <summary>Who makes it?</summary>
+            <p>DOGS. <a href="https://wearedogs.net">wearedogs.net</a></p>
+          </details>
+          <details>
+            <summary>Will it be free?</summary>
+            <p>Not decided yet. The plan is reader-first.</p>
+          </details>
+          <details>
+            <summary>How do I follow along?</summary>
+            <p>Watch the <a href="https://github.com/YEAHDOGS/news">public GitHub repo</a>. That is where real updates land.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section dark notify" id="notify" aria-labelledby="notify-h">
+      <div class="wrap narrow">
+        <p class="secnum" aria-hidden="true">05</p>
         <p class="eyebrow">Stay in the loop</p>
-        <h2 id="notify-h">Get notified</h2>
-        <p class="lede">Want to know when News wakes up from its nap? Leave your email.</p>
-        <form data-notify novalidate>
+        <h2 id="notify-h" data-reveal>Get notified</h2>
+        <p class="lede" data-reveal>Leave your email. Heads up: this form is a placeholder for now, so nothing is stored or sent.</p>
+        <form data-notify novalidate data-reveal>
           <div class="fields">
             <div>
               <label for="email">Email address</label>
@@ -121,6 +193,7 @@
           <nav aria-label="Footer">
             <a href="./">Home</a>
             <a href="./privacy.html">Privacy</a>
+            <a href="./terms.html">Terms</a>
             <a href="https://github.com/YEAHDOGS/news">GitHub</a>
           </nav>
           <p>&copy; 2026 DOGS</p>
@@ -128,6 +201,11 @@
       </div>
     </section>
   </main>
+
+  <div class="sticky-cta" id="sticky-cta">
+    <a class="btn" href="#notify">Get notified</a>
+  </div>
+
   <script src="./app.js" defer></script>
 </body>
 </html>
