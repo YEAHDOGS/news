@@ -1,212 +1,364 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DOGS NEWS — An independent news platform</title>
-  <meta name="description" content="DOGS NEWS is an independent news platform by DOGS: reader-first reporting with no middlemen and no noise. Work in progress, estimated 2027.">
-  <meta name="robots" content="index, follow">
-  <meta name="theme-color" content="#faf9f5">
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="canonical" href="https://news.wearedogs.net/">
-  <meta property="og:site_name" content="DOGS NEWS">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="DOGS NEWS — An independent news platform">
-  <meta property="og:description" content="DOGS NEWS is an independent news platform by DOGS: reader-first reporting with no middlemen and no noise. Work in progress, estimated 2027.">
-  <meta property="og:url" content="https://news.wearedogs.net/">
-  <meta property="og:image" content="https://news.wearedogs.net/og.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="DOGS NEWS — An independent news platform">
-  <meta name="twitter:card" content="summary_large_image">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "name": "DOGS",
-        "url": "https://wearedogs.net"
-      },
-      {
-        "@type": "WebSite",
-        "name": "DOGS NEWS",
-        "url": "https://news.wearedogs.net/",
-        "description": "An independent news platform by DOGS."
-      },
-      {
-        "@type": "FAQPage",
-        "mainEntity": [
-          {"@type": "Question", "name": "What is DOGS NEWS?", "acceptedAnswer": {"@type": "Answer", "text": "An independent news platform by DOGS. It is a work in progress."}},
-          {"@type": "Question", "name": "When does it launch?", "acceptedAnswer": {"@type": "Answer", "text": "More information is estimated by 2027."}},
-          {"@type": "Question", "name": "Who makes it?", "acceptedAnswer": {"@type": "Answer", "text": "DOGS. https://wearedogs.net"}},
-          {"@type": "Question", "name": "Will it be free?", "acceptedAnswer": {"@type": "Answer", "text": "Not decided yet. The plan is reader-first."}},
-          {"@type": "Question", "name": "How do I follow along?", "acceptedAnswer": {"@type": "Answer", "text": "Watch the public GitHub repository at https://github.com/YEAHDOGS/news."}}
-        ]
-      }
-    ]
-  }
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DOGS NEWS — News that bites</title>
+<meta name="description" content="DOGS NEWS is an independent news platform by DOGS: reader-first reporting with no middlemen and no noise. Work in progress, more information estimated by 2027.">
+<meta name="theme-color" content="#121110">
+<meta name="robots" content="index, follow">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="canonical" href="https://news.wearedogs.net/">
+<meta property="og:site_name" content="DOGS NEWS">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DOGS NEWS — News that bites">
+<meta property="og:description" content="An independent news platform by DOGS. Reader-first reporting. No middlemen. No noise.">
+<meta property="og:url" content="https://news.wearedogs.net/">
+<meta property="og:image" content="https://news.wearedogs.net/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="DOGS NEWS — News that bites">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {"@type": "Organization", "name": "DOGS", "url": "https://wearedogs.net"},
+    {"@type": "WebSite", "name": "DOGS NEWS", "url": "https://news.wearedogs.net/",
+     "description": "An independent news platform by DOGS."},
+    {"@type": "FAQPage", "mainEntity": [
+      {"@type": "Question", "name": "What is DOGS NEWS?", "acceptedAnswer": {"@type": "Answer", "text": "An independent news platform by DOGS. Reader-first reporting with no middlemen and no noise. Work in progress."}},
+      {"@type": "Question", "name": "When does it launch?", "acceptedAnswer": {"@type": "Answer", "text": "More information is estimated by 2027."}},
+      {"@type": "Question", "name": "Who makes it?", "acceptedAnswer": {"@type": "Answer", "text": "DOGS. https://wearedogs.net"}},
+      {"@type": "Question", "name": "How do I follow along?", "acceptedAnswer": {"@type": "Answer", "text": "Watch the public GitHub repository at https://github.com/YEAHDOGS/news."}}
+    ]}
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#121110; --bg2:#181614; --line:#2c2622;
+  --ink:#f4efe6; --paper:#f4efe6; --muted:#b3a89a; --faint:#7a6f61;
+  --red:#e0482c; --amber:#d9a441;
+  --serif:Georgia,'Times New Roman',serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--red);color:#fff}
+a{color:inherit}
+img{max-width:100%}
+/* ---------- top bar ---------- */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:60;background:rgba(18,17,16,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.topbar .bar{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:58px;padding:0 20px}
+.wordmark{font-family:var(--serif);font-weight:700;font-size:15px;letter-spacing:.14em;text-decoration:none}
+.wordmark b{color:var(--red)}
+.dateline{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+.topbar .cta{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-decoration:none;background:var(--red);color:#fff;padding:10px 18px;border-radius:10px;white-space:nowrap}
+.topbar .cta:active{transform:scale(.96)}
+/* ---------- panels ---------- */
+.panel{position:relative;height:100vh;height:100svh;scroll-snap-align:start;overflow:hidden;display:flex}
+.bg{position:absolute;left:0;right:0;top:-10%;height:120%;background-size:cover;background-position:center;will-change:transform}
+.scrim{position:absolute;inset:0;pointer-events:none}
+.word{position:absolute;font-family:var(--serif);font-weight:700;line-height:.85;letter-spacing:-.02em;color:var(--ink);opacity:.15;white-space:nowrap;pointer-events:none;user-select:none;font-size:clamp(88px,23vw,290px)}
+.copy{position:absolute;z-index:2;max-width:34ch;padding:0 24px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--amber);margin-bottom:14px}
+.copy h2{font-family:var(--serif);font-weight:400;font-size:clamp(38px,9vw,72px);line-height:1.02;letter-spacing:-.01em}
+.copy h2 em{font-style:italic;color:var(--red)}
+.sub{margin-top:16px;font-size:16px;color:var(--muted);max-width:30ch;line-height:1.5}
+.btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--mono);font-size:13px;letter-spacing:.1em;padding:17px 30px;border-radius:12px;background:var(--red);color:#fff;margin-top:24px;white-space:nowrap}
+.btn:active{transform:scale(.96)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btnrow{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;width:max-content;max-width:calc(100vw - 48px)}
+.btnrow .btn{margin-top:0}
+.micro{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.05em;margin-top:16px}
+/* reveal */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1);transition-delay:var(--d,0ms)}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+/* --- p1: NEWS hero --- */
+#p1 .scrim{background:linear-gradient(180deg,rgba(18,17,16,.6) 0%,rgba(18,17,16,0) 32%,rgba(18,17,16,.3) 60%,rgba(18,17,16,.94) 100%)}
+#p1 .word{right:-.05em;bottom:-.12em}
+#p1 .copy{left:0;bottom:0;padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+.ticker{position:absolute;bottom:0;left:0;right:0;z-index:3;border-top:1px solid var(--line);background:rgba(18,17,16,.7);overflow:hidden;white-space:nowrap;padding:10px 0}
+.ticker-track{display:inline-block;animation:tick 26s linear infinite;font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--amber)}
+@keyframes tick{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+/* --- p2: INDEPENDENT (text top-left, word top-right) --- */
+#p2 .scrim{background:linear-gradient(210deg,rgba(18,17,16,.1) 0%,rgba(18,17,16,.7) 50%,rgba(18,17,16,.95) 100%)}
+#p2 .word{right:-.07em;top:.6em}
+#p2 .copy{left:0;top:0;padding-top:110px}
+/* --- p3: READERS (text mid-right, word bottom-left) --- */
+#p3 .scrim{background:linear-gradient(150deg,rgba(18,17,16,.9) 0%,rgba(18,17,16,.3) 45%,rgba(18,17,16,.92) 100%)}
+#p3 .word{left:-.07em;bottom:-.12em}
+#p3 .copy{right:0;top:50%;transform:translateY(-50%);text-align:right}
+#p3 .rv{transform:translateY(26px)}
+#p3 .rv.in{transform:none}
+#p3 .sub{margin-left:auto}
+/* --- p4: SIGNAL (text mid-left, word right-mid) --- */
+#p4 .scrim{background:linear-gradient(100deg,rgba(18,17,16,.95) 0%,rgba(18,17,16,.45) 50%,rgba(18,17,16,.08) 100%)}
+#p4 .word{right:-.09em;top:36%}
+#p4 .copy{left:0;top:50%;transform:translateY(-50%)}
+#p4 .rv{transform:translateY(26px)}
+#p4 .rv.in{transform:none}
+/* --- p5: BRIEFING (text center over dark) --- */
+#p5{background:radial-gradient(110% 80% at 50% 115%,#3a1a10 0%,var(--bg) 62%);align-items:center;justify-content:center;text-align:center}
+#p5 .word{left:50%;transform:translateX(-50%);bottom:-.14em}
+#p5 .copy{position:relative;left:auto;top:auto;transform:none;max-width:38ch;margin:0 auto}
+#p5 .rv{transform:translateY(26px)}
+#p5 .rv.in{transform:none}
+#p5 .sub{margin-left:auto;margin-right:auto}
+#p5 .btn{margin-left:auto;margin-right:auto}
+.pill{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--amber);border:1px solid var(--line);border-radius:999px;padding:8px 16px;margin-bottom:16px}
+/* --- p6: ROADMAP (timeline) --- */
+#p6{background:var(--bg2);align-items:center}
+#p6 .word{left:-.06em;top:.5em;opacity:.08}
+#p6 .inner{position:relative;z-index:2;width:100%;max-width:1200px;margin:0 auto;padding:110px 24px 40px}
+#p6 h2{font-family:var(--serif);font-weight:400;font-size:clamp(38px,9vw,72px);line-height:1.02;margin-bottom:34px}
+#p6 h2 em{font-style:italic;color:var(--red)}
+.steps{list-style:none;display:grid;gap:0;border-top:1px solid var(--line)}
+.steps li{display:grid;grid-template-columns:auto 1fr;gap:18px;padding:20px 4px;border-bottom:1px solid var(--line);align-items:baseline}
+.steps .yr{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--amber);white-space:nowrap}
+.steps .t{font-family:var(--serif);font-size:20px}
+.steps .d{display:block;font-family:var(--sans);font-size:14px;color:var(--muted);margin-top:6px;max-width:52ch;line-height:1.5}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:12px;vertical-align:middle}
+.tag.done{color:#7fce8a;border-color:#2c4a30}
+.tag.now{color:var(--amber);border-color:#4a3a1c}
+/* --- p7: FIRST (notify + footer) --- */
+#p7{background:var(--bg);align-items:flex-start}
+#p7 .inner{position:relative;z-index:2;width:100%;max-width:760px;margin:0 auto;padding:100px 24px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;height:100%}
+#p7 h2{font-family:var(--serif);font-weight:400;font-size:clamp(32px,7vw,48px);line-height:1.05}
+#p7 h2 em{font-style:italic;color:var(--red)}
+.notify{margin-top:22px}
+.notify .lede{color:var(--muted);font-size:14px;margin:12px 0 18px;max-width:52ch;line-height:1.55}
+.fields{display:flex;gap:10px}
+.fields label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.fields input{flex:1;min-width:0;background:#0e0d0c;border:1px solid var(--line);border-radius:12px;color:var(--ink);font-size:16px;padding:16px 18px;font-family:var(--sans)}
+.fields input:focus{outline:2px solid var(--amber);outline-offset:2px}
+.fields button{background:var(--red);color:#fff;border:0;border-radius:12px;font-family:var(--mono);font-size:13px;letter-spacing:.1em;padding:0 26px;cursor:pointer;white-space:nowrap}
+.fields button:active{transform:scale(.96)}
+.field-error{font-size:13px;color:var(--red);margin-top:10px;min-height:18px}
+.notify-ok{font-family:var(--mono);font-size:13px;color:#7fce8a;letter-spacing:.04em;margin-top:10px}
+.faq{margin-top:26px;border-top:1px solid var(--line);overflow-y:auto;min-height:0}
+.faq details{border-bottom:1px solid var(--line);padding:12px 4px}
+.faq summary{font-family:var(--serif);font-size:16px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:var(--mono);color:var(--red);font-size:20px;flex-shrink:0;transition:transform .2s ease}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{color:var(--muted);font-size:14px;margin-top:10px;max-width:60ch;line-height:1.55}
+.faq details p a{color:var(--ink)}
+footer{margin-top:auto;padding-top:20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.fnav{display:flex;gap:20px;font-family:var(--mono);font-size:12px;letter-spacing:.1em;flex-wrap:wrap}
+.fnav a{color:var(--muted);text-decoration:none}
+.badge{display:block;max-width:190px}
+.badge img{display:block;width:100%;height:auto}
+.copyright{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em}
+@media (min-width:760px){
+  .copy{padding:0 48px}
+  #p6 .inner{padding:110px 48px 40px}
+  .steps .t{font-size:24px}
+}
+@media (max-width:420px){
+  .dateline{display:none}
+  .fields{flex-direction:column}
+  .fields button{padding:16px}
+}
+</style>
 </head>
 <body>
-  <a class="skip" href="#content">Skip to content</a>
-  <div class="progress" aria-hidden="true"><span></span></div>
-
-  <header class="site">
-    <div class="nav">
-      <div class="brand">
-        <a class="wordmark" href="https://wearedogs.net">
-          <img src="./dogs-logo.svg" alt="DOGS logo: a black-and-white Labrador with its tongue out" width="34" height="34" decoding="async">
-          <span>DOGS</span>
-        </a>
-        <span class="sep" aria-hidden="true">/</span>
-        <a class="project" href="./">News</a>
-      </div>
-      <div class="mast-meta">
-        <span class="dateline" id="dateline" aria-label="Today's date"></span>
-        <nav aria-label="Primary">
-          <a href="./privacy.html">Privacy</a>
-          <a href="./briefing.html">Briefing</a>
-          <a href="https://github.com/YEAHDOGS/news">GitHub</a>
-        </nav>
-      </div>
-    </div>
-  </header>
-
-  <nav class="rail" aria-label="Sections">
-    <a href="#top" class="active"><b>01</b><span>Front page</span></a>
-    <a href="#plan"><b>02</b><span>The plan</span></a>
-    <a href="#roadmap"><b>03</b><span>Roadmap</span></a>
-    <a href="#faq"><b>04</b><span>FAQ</span></a>
-    <a href="#notify"><b>05</b><span>Notify</span></a>
-  </nav>
-
-  <main id="content">
-    <section class="hero" id="top" aria-label="Front page">
-      <div class="wrap">
-        <p class="eyebrow">DOGS NEWS &middot; An independent news platform</p>
-        <h1 class="headline" data-split>News that bites.</h1>
-        <p class="lede">Reader-first reporting. No middlemen. No noise.</p>
-        <p class="badge"><span class="pip" aria-hidden="true"></span> Work in progress &middot; more information estimated by 2027</p>
-        <div class="cta-row">
-          <a class="btn" href="#notify">Get notified</a>
-          <a class="btn ghost" href="#plan">See the plan</a>
-        </div>
-      </div>
-      <div class="ticker" aria-hidden="true">
-        <div class="ticker-track">
-          <span>Independent &middot; Reader-first &middot; Signal over noise &middot; No middlemen &middot; Clear bylines &middot; Fast pages &middot; No dark patterns &middot; Answers to readers &middot;&nbsp;</span>
-          <span>Independent &middot; Reader-first &middot; Signal over noise &middot; No middlemen &middot; Clear bylines &middot; Fast pages &middot; No dark patterns &middot; Answers to readers &middot;&nbsp;</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="plan" aria-labelledby="plan-h">
-      <div class="wrap">
-        <p class="secnum" aria-hidden="true">02</p>
-        <p class="eyebrow">The plan</p>
-        <h2 id="plan-h" data-reveal>What we are building</h2>
-        <div class="columns">
-          <div class="col lead" data-reveal>
-            <h3>Independent</h3>
-            <p>No parent company, no sponsors steering coverage. The platform answers to readers.</p>
-          </div>
-          <div class="col" data-reveal>
-            <h3>Reader-first</h3>
-            <p>Fast pages, clear bylines, no dark patterns between you and the story.</p>
-          </div>
-          <div class="col" data-reveal>
-            <h3>Signal over noise</h3>
-            <p>Fewer stories, better sourced. If it is not worth your time, it does not run.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section alt" id="roadmap" aria-labelledby="roadmap-h">
-      <div class="wrap">
-        <p class="secnum" aria-hidden="true">03</p>
-        <p class="eyebrow">Roadmap</p>
-        <h2 id="roadmap-h" data-reveal>The road to 2027</h2>
-        <ol class="timeline">
-          <li class="done" data-reveal><span class="dot" aria-hidden="true"></span><strong>Repo live</strong><span class="when">2026 &middot; done</span></li>
-          <li class="now" data-reveal><span class="dot" aria-hidden="true"></span><strong>Building</strong><span class="when">Now &middot; in progress</span></li>
-          <li class="future" data-reveal><span class="dot" aria-hidden="true"></span><strong>More information</strong><span class="when">Estimated 2027</span></li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="section" id="faq" aria-labelledby="faq-h">
-      <div class="wrap narrow">
-        <p class="secnum" aria-hidden="true">04</p>
-        <p class="eyebrow">FAQ</p>
-        <h2 id="faq-h" data-reveal>Asked, answered</h2>
-        <div class="faqs" data-reveal>
-          <details open>
-            <summary>What is DOGS NEWS?</summary>
-            <p>An independent news platform by DOGS. It is a work in progress.</p>
-          </details>
-          <details>
-            <summary>When does it launch?</summary>
-            <p>More information is estimated by 2027.</p>
-          </details>
-          <details>
-            <summary>Who makes it?</summary>
-            <p>DOGS. <a href="https://wearedogs.net">wearedogs.net</a></p>
-          </details>
-          <details>
-            <summary>Will it be free?</summary>
-            <p>Not decided yet. The plan is reader-first.</p>
-          </details>
-          <details>
-            <summary>How do I follow along?</summary>
-            <p>Watch the <a href="https://github.com/YEAHDOGS/news">public GitHub repo</a>. That is where real updates land.</p>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <section class="section dark notify" id="notify" aria-labelledby="notify-h">
-      <div class="wrap narrow">
-        <p class="secnum" aria-hidden="true">05</p>
-        <p class="eyebrow">Stay in the loop</p>
-        <h2 id="notify-h" data-reveal>Get notified</h2>
-        <p class="lede" data-reveal>Leave your email. Heads up: this form is a placeholder for now, so nothing is stored or sent.</p>
-        <form data-notify novalidate data-reveal>
-          <div class="fields">
-            <div>
-              <label for="email">Email address</label>
-              <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" aria-describedby="email-error">
-            </div>
-            <button type="submit"><span class="spinner" aria-hidden="true"></span><span>Notify me</span></button>
-          </div>
-          <p class="field-error" id="email-error" aria-live="polite"></p>
-        </form>
-        <div class="foot">
-          <p class="madeby">
-            <img src="./dogs-logo.svg" alt="DOGS logo: a black-and-white Labrador with its tongue out" width="24" height="24" loading="lazy" decoding="async">
-            This product was made by <a href="https://wearedogs.net">DOGS</a>
-          </p>
-          <nav aria-label="Footer">
-            <a href="./">Home</a>
-            <a href="./privacy.html">Privacy</a>
-            <a href="./terms.html">Terms</a>
-            <a href="https://github.com/YEAHDOGS/news">GitHub</a>
-          </nav>
-          <p>&copy; 2026 DOGS</p>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <div class="sticky-cta" id="sticky-cta">
-    <a class="btn" href="#notify">Get notified</a>
+<header class="topbar">
+  <div class="bar">
+    <a class="wordmark" href="./"><b>DOGS</b>&nbsp;NEWS</a>
+    <span class="dateline" id="dateline"></span>
+    <a class="cta" href="#p7">GET NOTIFIED</a>
   </div>
+</header>
 
-  <script src="./app.js" defer></script>
+<main>
+<!-- 1 / NEWS -->
+<section class="panel" id="p1">
+  <div class="bg" data-px style="background-image:url('img/hero.jpg')" role="img" aria-label="Newspaper printing press running at night"></div>
+  <div class="scrim"></div>
+  <div class="word" aria-hidden="true">NEWS</div>
+  <div class="copy">
+    <p class="kicker rv">AN INDEPENDENT NEWS PLATFORM</p>
+    <h2 class="rv" style="--d:90ms">News that <em>bites.</em></h2>
+    <p class="sub rv" style="--d:180ms">Reader-first reporting. No middlemen. No noise.</p>
+    <div class="btnrow rv" style="--d:240ms">
+      <a class="btn" href="#p5">READ THE BRIEFING</a><a class="btn ghost" href="#p2">SEE THE PLAN</a>
+    </div>
+    <p class="micro rv" style="--d:300ms">WORK IN PROGRESS &middot; MORE INFO ESTIMATED 2027</p>
+  </div>
+  <div class="ticker" aria-hidden="true"><div class="ticker-track">
+    <span>INDEPENDENT &middot; READER-FIRST &middot; SIGNAL OVER NOISE &middot; NO MIDDLEMEN &middot; CLEAR BYLINES &middot; FAST PAGES &middot; NO DARK PATTERNS &middot;&nbsp;</span><span>INDEPENDENT &middot; READER-FIRST &middot; SIGNAL OVER NOISE &middot; NO MIDDLEMEN &middot; CLEAR BYLINES &middot; FAST PAGES &middot; NO DARK PATTERNS &middot;&nbsp;</span>
+  </div></div>
+</section>
+
+<!-- 2 / INDEPENDENT -->
+<section class="panel" id="p2">
+  <div class="bg" data-px style="background-image:url('img/newsroom.jpg')" role="img" aria-label="Dark newsroom at night, monitors glowing"></div>
+  <div class="scrim"></div>
+  <div class="word" aria-hidden="true">OWNED</div>
+  <div class="copy">
+    <p class="kicker rv">01 / INDEPENDENT</p>
+    <h2 class="rv" style="--d:90ms">No owners.<br><em>No sponsors.</em></h2>
+    <p class="sub rv" style="--d:180ms">No parent company, no sponsors steering coverage. The platform answers to readers — full stop.</p>
+  </div>
+</section>
+
+<!-- 3 / READERS -->
+<section class="panel" id="p3">
+  <div class="bg" data-px style="background-image:url('img/press.jpg')" role="img" aria-label="Freshly printed newspaper front page under a spotlight"></div>
+  <div class="scrim"></div>
+  <div class="word" aria-hidden="true">READ</div>
+  <div class="copy">
+    <p class="kicker rv">02 / READER-FIRST</p>
+    <h2 class="rv" style="--d:90ms">Built for <em>readers.</em></h2>
+    <p class="sub rv" style="--d:180ms">Fast pages, clear bylines, no dark patterns between you and the story.</p>
+  </div>
+</section>
+
+<!-- 4 / SIGNAL -->
+<section class="panel" id="p4">
+  <div class="bg" data-px style="background-image:url('img/mic.jpg')" role="img" aria-label="Reporter with a microphone on a dark street at night"></div>
+  <div class="scrim"></div>
+  <div class="word" aria-hidden="true">NOISE</div>
+  <div class="copy">
+    <p class="kicker rv">03 / SIGNAL OVER NOISE</p>
+    <h2 class="rv" style="--d:90ms">Fewer stories.<br><em>Better sourced.</em></h2>
+    <p class="sub rv" style="--d:180ms">If it is not worth your time, it does not run.</p>
+  </div>
+</section>
+
+<!-- 5 / BRIEFING -->
+<section class="panel" id="p5">
+  <div class="word" aria-hidden="true">BRIEF</div>
+  <div class="copy">
+    <span class="pill rv">PROTOTYPE &middot; SAMPLE STORIES</span>
+    <p class="kicker rv">04 / THE MORNING BRIEFING</p>
+    <h2 class="rv" style="--d:90ms">Top stories,<br><em>ranked by readers.</em></h2>
+    <p class="sub rv" style="--d:140ms">Vote stories up, share what matters. The live version ranks the day's news — this prototype runs on sample stories.</p>
+    <a class="btn rv" style="--d:200ms" href="./briefing.html">READ THE BRIEFING</a>
+  </div>
+</section>
+
+<!-- 6 / ROADMAP -->
+<section class="panel" id="p6">
+  <div class="word" aria-hidden="true">2027</div>
+  <div class="inner">
+    <p class="kicker rv">05 / THE ROADMAP</p>
+    <h2 class="rv" style="--d:90ms">The road to <em>2027.</em></h2>
+    <ol class="steps rv" style="--d:160ms">
+      <li><span class="yr">2026</span><div><span class="t">Repo live</span><span class="tag done">DONE</span><span class="d">The news repo is public. Plans, specs, and the briefing prototype ship in the open.</span></div></li>
+      <li><span class="yr">NOW</span><div><span class="t">Building</span><span class="tag now">IN PROGRESS</span><span class="d">The RSS aggregator pipeline and reader-ranked briefing are under construction.</span></div></li>
+      <li><span class="yr">2027</span><div><span class="t">More information</span><span class="d">The full platform. Launch timing lands here.</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<!-- 7 / FIRST -->
+<section class="panel" id="p7">
+  <div class="inner">
+    <p class="kicker rv">06 / FIRST TO KNOW</p>
+    <h2 class="rv" style="--d:90ms">Be there when <em>it lands.</em></h2>
+    <div class="notify rv" style="--d:140ms">
+      <p class="lede">Leave your email. It stays on this device — the real waitlist is not built yet, so nothing is stored or sent.</p>
+      <form id="notifyForm" novalidate>
+        <div class="fields">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" aria-describedby="email-error">
+          <button type="submit">NOTIFY ME</button>
+        </div>
+        <p class="field-error" id="email-error" aria-live="polite"></p>
+        <p class="notify-ok" id="notifyOk" hidden>Saved on this device. We will not spam you — there is nothing to spam you with yet.</p>
+      </form>
+    </div>
+    <div class="faq rv" style="--d:200ms">
+      <details><summary>What is DOGS NEWS?</summary><p>An independent news platform by DOGS. Reader-first reporting with no middlemen and no noise. It is a work in progress.</p></details>
+      <details><summary>When does it launch?</summary><p>More information is estimated by 2027.</p></details>
+      <details><summary>Who makes it?</summary><p>DOGS. <a href="https://wearedogs.net">wearedogs.net</a></p></details>
+      <details><summary>How do I follow along?</summary><p>Watch the <a href="https://github.com/YEAHDOGS/news">public GitHub repo</a>. That is where real updates land.</p></details>
+    </div>
+    <footer>
+      <nav class="fnav" aria-label="Footer">
+        <a href="./">HOME</a>
+        <a href="./privacy.html">PRIVACY</a>
+        <a href="./terms.html">TERMS</a>
+        <a href="https://github.com/YEAHDOGS/news">SOURCE</a>
+      </nav>
+      <a class="badge" href="https://wearedogs.net" aria-label="This product was made by DOGS"><img src="./made-by-dogs.png" alt="This product was made by DOGS" width="900" height="297"></a>
+      <p class="copyright">&copy; 2026 DOGS</p>
+    </footer>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* dateline */
+  try {
+    document.getElementById('dateline').textContent =
+      new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  } catch(e){}
+
+  /* staggered reveals on panel entry */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:.18});
+  document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
+
+  /* parallax bg drift — transform only, rAF-throttled */
+  var bgs = Array.prototype.slice.call(document.querySelectorAll('[data-px]'));
+  var ticking = false;
+  function parallax(){
+    ticking = false;
+    if(reduce) return;
+    var vh = window.innerHeight;
+    bgs.forEach(function(bg){
+      var r = bg.parentElement.getBoundingClientRect();
+      if(r.bottom < -vh || r.top > vh*2) return;
+      var p = (r.top + r.height/2 - vh/2) / vh;
+      bg.style.transform = 'translate3d(0,' + (p * -8).toFixed(2) + '%,0)';
+    });
+  }
+  function onScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(parallax);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  parallax();
+
+  /* honest localStorage notify capture */
+  var form = document.getElementById('notifyForm');
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var input = document.getElementById('email');
+    var err = document.getElementById('email-error');
+    var ok = document.getElementById('notifyOk');
+    var v = input.value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+      err.textContent = 'Enter a valid email address.';
+      input.focus();
+      return;
+    }
+    err.textContent = '';
+    try {
+      var list = JSON.parse(localStorage.getItem('dogs-news-notify') || '[]');
+      if(list.indexOf(v) === -1){ list.push(v); localStorage.setItem('dogs-news-notify', JSON.stringify(list)); }
+    } catch(e){}
+    ok.hidden = false;
+    form.querySelector('.fields').style.display = 'none';
+  });
+})();
+</script>
 </body>
 </html>
