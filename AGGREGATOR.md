@@ -9,12 +9,12 @@ is wired to live feeds yet.
 1. **RSS/Atom feeds** — primary. Curated list of publisher + independent feeds,
    fetched server-side (never from the browser; avoids CORS).
 2. **Publisher sitemaps** (news sitemaps) — secondary, for outlets with weak RSS.
-3. **Manual curation queue** — user (or an editor) can pin/inject a story via
+3. **Manual curation queue** — An editor can pin/inject a story via
    a tiny admin form. Pins always outrank algorithmic picks.
 
 No scrapers against sites that forbid it. No paid APIs. Respect robots.txt.
 
-### Source decisions needed from user
+### Source decisions needed from the founder
 - Which outlets/topics make the curated feed list (and which are banned)?
 - Politics coverage: in scope or out?
 - How many sources to start (suggest 20–40)?
@@ -51,7 +51,7 @@ fetch (hourly) → normalize → dedupe → score → emit static JSON → brief
   "Today's edition" vs "Updating…" based on the JSON timestamp.
 - Breaking override: manual dispatch of the Action for big stories.
 
-### Cadence decisions needed from user
+### Cadence decisions needed from the founder
 - Hourly OK, or every 30 min? (Actions minutes are free here, but noise.)
 - 06:00 Chicago edition time OK?
 
